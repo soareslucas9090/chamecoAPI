@@ -10,7 +10,7 @@ from .spectacular_settings import *
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get("secretKeyDjango")
-
+# Testa se já há variáveis de ambiente configuradas, se não há, carrega do arquivo local .env
 if not SECRET_KEY:
     load_dotenv()
     SECRET_KEY = os.environ.get("secretKeyDjango")
@@ -113,7 +113,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 20,
-    "DATE_INPUT_FORMATS": ["%Y-%m-%d", "%d-%m-%Y", "%Y/%m/%d", "%d/%m/%Y"],
+    "DATE_INPUT_FORMATS": ["%Y-%m-%d", "%Y/%m/%d"],
     "TIME_INPUT_FORMATS": [
         "%H:%M",
     ],
