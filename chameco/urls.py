@@ -18,5 +18,5 @@ urlpatterns = [
         SpectacularRedocView.as_view(url_name="schema"),
         name="redoc",
     ),
-    path("api/", include("chamecoapi.urls")),
+    path("api/v1/", include("chamecoapi.urls")),
 ]

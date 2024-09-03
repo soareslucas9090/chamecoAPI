@@ -1,50 +1,68 @@
+import os
 from typing import Callable
 
+import requests
+from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory
 
-from certethereum import views_jwt
+URL_BASE_TOKEN = f"{os.environ.get("urlBase")}api/token/"
 
 
 def requestFactory(
     method: str,
     url: str,
-    view: Callable[..., HttpResponse],
+    id_user: int,
     body: dict[str, str] | None = None,
-    header: dict | None = None,
 ):
-    factory = RequestFactory()
-    request = getattr(factory, method)
-
-    if method in ["post", "patch", "put"]:
-        request = request(url, data=body)
+    request = getattr(requests, method.lower(), None)
+    
+    if request is None:
+        raise ValueError(f"Método {method} não é suportado.")
+    
+    
+    # Testa todos as possibilidades possíveis de obter a autenticação, se não for possível retorna False
+    # O retorno False deste trecho deve ser tratado na view como uma resposta HTTP 401
+    if isAuthenticated(id_user):
+        if verifyToken(id_user):
+            auth = getTokens(id_user)
+        
+        elif refreshToken(id_user):
+            auth = getTokens(id_user)
+        
+        else:
+            return False
+    
     else:
-        request = request(url)
+        return False
+    
+    header = {"Authorization": f"Bearer {auth["access"]}"}
 
-    if header:
-        for key, value in header.items():
-            request.META[f"HTTP_{key.upper()}"] = value
+    response = request(url, json=body, header=header)
 
-    return view(request)
-
-
-def getTokens(request: HttpRequest) -> dict[str, str | None]:
-    access = request.COOKIES.get("access_token")
-    refresh = request.COOKIES.get("refresh_token")
-    return {"access": access, "refresh": refresh}
-
-
-def setTokens(response: HttpResponse, access: str, refresh: str) -> HttpResponse:
-    response.set_cookie("access_token", access, httponly=True)
-    response.set_cookie("refresh_token", refresh, httponly=True)
     return response
 
 
-def verifyToken(token: str) -> bool:
+def getTokens(id_user: int) -> dict[str, str | None] | None:
+    access = cache.get(f"api_cortex_access_token_user_{id_user}")
+    refresh = cache.get(f"api_cortex_refresh_token_user_{id_user}")
+    
+    if not access and not refresh:
+        return None
+    
+    return {"access": access, "refresh": refresh}
+
+
+def setTokens(id_user: int, access: str, refresh: str):
+    cache.set(f"api_cortex_access_token_user_{id_user}", f"{access}", timeout=600)
+    cache.set(f"api_cortex_refresh_token_user_{id_user}", f"{refresh}", timeout=2100)
+
+
+def verifyToken(id_user: int) -> bool:
+    token = getTokens(id_user)["access"]
     data = {"token": token}
-    response = requestFactory(
-        "post", "api/token/verify/", views_jwt.TokenVerifyViewDOC.as_view(), data  # type: ignore
-    )
+
+    response = requests.post(url=f"{URL_BASE_TOKEN}verify/", json=data)
 
     if response.status_code != 200:
         return False
@@ -52,31 +70,32 @@ def verifyToken(token: str) -> bool:
     return True
 
 
-def refreshToken(request: HttpRequest, response_redirect: HttpResponse) -> HttpResponse:
-    tokens = getTokens(request)
+def refreshToken(id_user: int) -> bool:
+    refresh = getTokens(id_user)["refresh"]
 
-    refresh = tokens["refresh"]
-
-    data = {}
     if refresh:
         data = {"refresh": refresh}
     else:
         data = {"refresh": "null"}
 
-    response = requestFactory(
-        "post", "api/token/refresh/", views_jwt.TokenRefreshViewDOC.as_view(), data
-    )
+    response = requests.post(url=f"{URL_BASE_TOKEN}refresh/", json=data)
 
     if response.status_code != 200:
-        return setTokens(response_redirect, "", "")
+        cache.delete(f"api_cortex_access_token_user_{id_user}")
+        cache.delete(f"api_cortex_refresh_token_user_{id_user}")
 
-    return setTokens(response_redirect, response.data.get("access"), tokens["refresh"])  # type: ignore
+        return False
 
+    data = response.json()
 
-def isAuthenticated(token: dict[str, str | None]) -> bool:
+    setTokens(id_user, data["access"], refresh)
+
+    return True
+
+def isAuthenticated(id_user: int) -> bool:
     isAuthenticated = False
 
-    if token["access"] and token["access"] != "":
+    if getTokens(id_user):
         isAuthenticated = True
 
     return isAuthenticated

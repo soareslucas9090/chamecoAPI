@@ -1,9 +1,26 @@
+import os
 from datetime import date
 
 from django.contrib.auth.hashers import make_password
 from rest_framework import serializers
 
+from .business import requestFactory
 from .models import Blocos, Chaves, PessoasAutorizadas, Salas, Usuarios
+
+URL_BASE = os.environ.get("urlBase")
+
+
+class LoginSerializer(serializers.Serializer):
+    cpf = serializers.CharField(required=True)
+    password = serializers.CharField(required=True)
+
+    def validate_password(self, value):
+        if len(value) < 8:
+            raise serializers.ValidationError(
+                "A senha deve ter pelo menos 8 caracteres"
+            )
+
+        return value
 
 
 class UsuariosSerializer(serializers.ModelSerializer):

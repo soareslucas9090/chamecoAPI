@@ -38,6 +38,13 @@ if "test" in sys.argv or "test_coverage" in sys.argv:
         "NAME": ":memory:",
     }
 
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "cache_django_chameco_api",
+    }
+}
+
 CORS_ORIGIN_WHITELIST = [
     "https://cloud.seenode.com",
     "http://127.0.0.1",
