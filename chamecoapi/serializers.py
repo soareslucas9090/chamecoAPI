@@ -4,10 +4,7 @@ from datetime import date
 from django.contrib.auth.hashers import make_password
 from rest_framework import serializers
 
-from .business import requestFactory
 from .models import Blocos, Chaves, PessoasAutorizadas, Salas, Usuarios
-
-URL_BASE = os.environ.get("urlBase")
 
 
 class LoginSerializer(serializers.Serializer):
@@ -26,7 +23,21 @@ class LoginSerializer(serializers.Serializer):
 class UsuariosSerializer(serializers.ModelSerializer):
     class Meta:
         model = Usuarios
-        fields = ["id_cortex", "id_setor", "id_tipo", "chaves_autorizadas", "chaves"]
+        fields = [
+            "id",
+            "id_cortex",
+            "nome",
+            "setor",
+            "tipo",
+            "chaves_autorizadas",
+            "chaves",
+        ]
+
+        extra_kwargs = {
+            "nome": {"read_only": True},
+            "setor": {"read_only": True},
+            "tipo": {"read_only": True},
+        }
 
     # Este é o campo destinado a escrita
     chaves_autorizadas = serializers.PrimaryKeyRelatedField(

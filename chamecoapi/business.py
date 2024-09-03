@@ -5,7 +5,9 @@ import requests
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory
+from dotenv import load_dotenv
 
+load_dotenv()
 URL_BASE_TOKEN = f"{os.environ.get("urlBase")}api/token/"
 
 
@@ -23,6 +25,7 @@ def requestFactory(
     
     # Testa todos as possibilidades possíveis de obter a autenticação, se não for possível retorna False
     # O retorno False deste trecho deve ser tratado na view como uma resposta HTTP 401
+    auth = {}
     if isAuthenticated(id_user):
         if verifyToken(id_user):
             auth = getTokens(id_user)
@@ -35,10 +38,10 @@ def requestFactory(
     
     else:
         return False
-    
-    header = {"Authorization": f"Bearer {auth["access"]}"}
 
-    response = request(url, json=body, header=header)
+    header = {"Authorization": f"Bearer {auth["access"]}"}
+    
+    response = request(url, json=body, headers=header)
 
     return response
 
@@ -60,6 +63,7 @@ def setTokens(id_user: int, access: str, refresh: str):
 
 def verifyToken(id_user: int) -> bool:
     token = getTokens(id_user)["access"]
+
     data = {"token": token}
 
     response = requests.post(url=f"{URL_BASE_TOKEN}verify/", json=data)

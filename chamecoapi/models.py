@@ -2,14 +2,19 @@ from django.db import models
 
 
 class Usuarios(models.Model):
-    id_cortex = models.IntegerField(null=False)
-    id_setor = models.IntegerField(null=False)
-    id_tipo = models.IntegerField(null=False)
+    nome = models.CharField(null=False)
+    id_cortex = models.IntegerField(null=False, unique=True)
+    setor = models.CharField(null=False)
+    tipo = models.CharField(null=False)
     chaves_autorizadas = models.ManyToManyField("Chaves", through="PessoasAutorizadas")
 
     class Meta:
         verbose_name = "Usuario"
         verbose_name_plural = "Usuarios"
+
+    def __str__(self) -> str:
+        str = f"{self.nome}"
+        return str
 
 
 class Blocos(models.Model):
