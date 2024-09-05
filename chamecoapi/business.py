@@ -3,7 +3,6 @@ from typing import Callable
 
 import requests
 from django.core.cache import cache
-from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory
 from dotenv import load_dotenv
 
@@ -27,18 +26,15 @@ def requestFactory(
     # O retorno False deste trecho deve ser tratado na view como uma resposta HTTP 401
     auth = {}
     if isAuthenticated(id_user):
-        if verifyToken(id_user):
-            auth = getTokens(id_user)
-        
-        elif refreshToken(id_user):
-            auth = getTokens(id_user)
-        
-        else:
+        tokens= isTokenValid(id_user)
+        if not tokens:
             return False
+        else:
+            auth = tokens
     
     else:
         return False
-
+    
     header = {"Authorization": f"Bearer {auth["access"]}"}
     
     response = request(url, json=body, headers=header)
@@ -95,6 +91,18 @@ def refreshToken(id_user: int) -> bool:
     setTokens(id_user, data["access"], refresh)
 
     return True
+
+def isTokenValid(id_user: int) -> dict[str, str | None] | bool:
+    if verifyToken(id_user):
+        auth = getTokens(id_user)
+        return auth
+        
+    elif refreshToken(id_user):
+        auth = getTokens(id_user)
+        return auth
+    
+    else:
+        return False
 
 def isAuthenticated(id_user: int) -> bool:
     isAuthenticated = False

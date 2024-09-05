@@ -11,6 +11,7 @@ class Usuarios(models.Model):
     class Meta:
         verbose_name = "Usuario"
         verbose_name_plural = "Usuarios"
+        ordering = ["id"]
 
     def __str__(self) -> str:
         str = f"{self.nome}"
@@ -23,6 +24,7 @@ class Blocos(models.Model):
     class Meta:
         verbose_name = "Bloco"
         verbose_name_plural = "Blocos"
+        ordering = ["nome"]
 
     def __str__(self) -> str:
         str = f"{self.nome}"
@@ -38,6 +40,7 @@ class Salas(models.Model):
     class Meta:
         verbose_name = "Sala"
         verbose_name_plural = "Salas"
+        ordering = ["nome"]
 
     def __str__(self) -> str:
         str = f"{self.nome}"
@@ -56,6 +59,7 @@ class Chaves(models.Model):
     class Meta:
         verbose_name = "Chave"
         verbose_name_plural = "Chaves"
+        ordering = ["id"]
 
     def __str__(self) -> str:
         str = f"Chave da sala {self.sala.nome}"
@@ -104,6 +108,7 @@ class Emprestimos(models.Model):
     class Meta:
         verbose_name = "Emprestimo"
         verbose_name_plural = "Emprestimos"
+        ordering = ["-id"]
 
     def __str__(self) -> str:
         str = f"Horario: {self.horario_emprestimo}, chave: {self.chave}"
