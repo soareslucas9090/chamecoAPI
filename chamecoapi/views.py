@@ -88,7 +88,8 @@ class UsuariosViewSet(ModelViewSet):
     queryset = Usuarios.objects.all()
     serializer_class = UsuariosSerializer
     pagination_class = DefaultNumberPagination
-
+    permission_classes = [IsTokenValid]
+    
     http_method_names = ["get", "post", "put", "delete", "head"]
     
     def get_usuario(self, request: HttpRequest, serializer: dict) -> HttpResponse:
@@ -123,8 +124,7 @@ class UsuariosViewSet(ModelViewSet):
                 return Response(data, status=status.HTTP_401_UNAUTHORIZED)
             
         return response
-        
-    
+         
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -157,7 +157,7 @@ class UsuariosViewSet(ModelViewSet):
         }
         
         return Response(result, status=status.HTTP_201_CREATED)
-    
+      
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=False)
@@ -193,8 +193,8 @@ class UsuariosViewSet(ModelViewSet):
         
             
     def get_permissions(self):
-        if self.request.method in ["PATCH", "DELETE", "PUT"]:
-            return [IsUserAuthenticated()]
+        if self.request.method in ["PATCH", "DELETE", "PUT", "POST"]:
+            return [IsAdmin()]
 
         return super().get_permissions()    
         
@@ -214,7 +214,7 @@ class BlocosViewSet(ModelViewSet):
         nome = self.request.query_params.get("nome", None)
         
         if nome:
-            queryset = queryset.filter(nome__icontains=nome)
+            queryset = queryset.filter(nome__icontains__iexact=nome)
             
         return queryset
     
@@ -233,7 +233,7 @@ class BlocosViewSet(ModelViewSet):
         return super().list(request, *args, **kwargs)
     
     def get_permissions(self):
-        if self.request.method in ["POST", "DELETE", "PUT", ]:
+        if self.request.method in ["PATCH", "DELETE", "PUT", "POST"]:
             return [IsAdmin()]
 
         return super().get_permissions()
@@ -254,12 +254,12 @@ class SalasViewSet(ModelViewSet):
         nome = self.request.query_params.get("nome", None)
         
         if nome:
-            queryset = queryset.filter(nome__icontains=nome)
+            queryset = queryset.filter(nome__icontains__iexact=nome)
             
         bloco = self.request.query_params.get("bloco", None)
         
         if bloco:
-            queryset = queryset.filter(bloco__nome__icontains=bloco)
+            queryset = queryset.filter(bloco__nome__icontains__iexact=bloco)
             
         return queryset
     
@@ -285,7 +285,7 @@ class SalasViewSet(ModelViewSet):
         return super().list(request, *args, **kwargs)
     
     def get_permissions(self):
-        if self.request.method in ["POST", "DELETE", "PUT", ]:
+        if self.request.method in ["PATCH", "DELETE", "PUT", "POST"]:
             return [IsAdmin()]
 
         return super().get_permissions()
