@@ -7,8 +7,12 @@ from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from dotenv import load_dotenv
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import (OpenApiExample, OpenApiParameter,
-                                   OpenApiResponse, extend_schema)
+from drf_spectacular.utils import (
+    OpenApiExample,
+    OpenApiParameter,
+    OpenApiResponse,
+    extend_schema,
+)
 from rest_framework import status
 from rest_framework.generics import GenericAPIView
 from rest_framework.pagination import PageNumberPagination
@@ -19,8 +23,13 @@ from rest_framework.viewsets import ModelViewSet
 from .business import getTokens, requestFactory, setTokens
 from .models import Blocos, Chaves, Salas, Usuarios
 from .permissions import IsAdmin, IsTokenValid, IsUserAuthenticated
-from .serializers import (BlocosSerializer, ChavesSerializer, LoginSerializer,
-                          SalasSerializer, UsuariosSerializer)
+from .serializers import (
+    BlocosSerializer,
+    ChavesSerializer,
+    LoginSerializer,
+    SalasSerializer,
+    UsuariosSerializer,
+)
 
 load_dotenv()
 URL_BASE = os.environ.get("urlBase")
@@ -72,8 +81,7 @@ class LoginAPIView(GenericAPIView):
                 "user_id"
             ]
 
-            setTokens(id_user, response.json()[
-                      "access"], response.json()["refresh"])
+            setTokens(id_user, response.json()["access"], response.json()["refresh"])
 
             request.session["id_user"] = id_user
 
@@ -96,8 +104,8 @@ class UsuariosViewSet(ModelViewSet):
 
     def get_usuario(self, request: HttpRequest, serializer: dict) -> HttpResponse:
         """
-            Método feito para a busca, na API, do ID do usuário do Cortex, pois
-            ele sempre precisar ser válido, tanto na criação, quanto edição do usuário
+        Método feito para a busca, na API, do ID do usuário do Cortex, pois
+        ele sempre precisar ser válido, tanto na criação, quanto edição do usuário
         """
         id_user = request.session.get("id_user")
 
@@ -118,14 +126,15 @@ class UsuariosViewSet(ModelViewSet):
                 # Se a resposta for inválida, testa se foi porque o usuário não existe
                 if response.status_code:
                     data = {
-                        "status": "error", "detail": "ID do usuário não existe ou usuário não está autorizado a fazer esta ação."}
+                        "status": "error",
+                        "detail": "ID do usuário não existe ou usuário não está autorizado a fazer esta ação.",
+                    }
                     return Response(data, status=status.HTTP_400_BAD_REQUEST)
 
             except:
                 # Se a resposta for inválida, e não foi porque o usuário não existe
                 # então é porque o token guardado não é válido
-                data = {"status": "error",
-                        "detail": "Token de acesso inválido."}
+                data = {"status": "error", "detail": "Token de acesso inválido."}
                 return Response(data, status=status.HTTP_401_UNAUTHORIZED)
 
         return response
@@ -141,13 +150,13 @@ class UsuariosViewSet(ModelViewSet):
             return response
 
         # Criando o usuário caso todas as verificações ocorram bem
-        setores = ', '.join(response.json()["nome_setores"])
+        setores = ", ".join(response.json()["nome_setores"])
 
         usuario = Usuarios.objects.create(
             nome=response.json()["nome"],
             id_cortex=response.json()["id"],
             setor=setores,
-            tipo=response.json()["nome_tipo"]
+            tipo=response.json()["nome_tipo"],
         )
 
         result = {
@@ -158,19 +167,18 @@ class UsuariosViewSet(ModelViewSet):
                 "id_cortex": usuario.id_cortex,
                 "setor": usuario.setor,
                 "tipo": usuario.tipo,
-            }
+            },
         }
 
         return Response(result, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = self.get_serializer(
-            instance, data=request.data, partial=False)
+        serializer = self.get_serializer(instance, data=request.data, partial=False)
         serializer.is_valid(raise_exception=True)
         serializer = serializer.validated_data
 
-        if getattr(instance, '_prefetched_objects_cache', None):
+        if getattr(instance, "_prefetched_objects_cache", None):
             # If 'prefetch_related' has been applied to a queryset, we need to
             # forcibly invalidate the prefetch cache on the instance.
             instance._prefetched_objects_cache = {}
@@ -181,7 +189,7 @@ class UsuariosViewSet(ModelViewSet):
             return response
 
         # Criando o usuário caso todas as verificações ocorram bem
-        setores = ', '.join(response.json()["nome_setores"])
+        setores = ", ".join(response.json()["nome_setores"])
 
         usuario = Usuarios.objects.get(id=kwargs["pk"])
 
@@ -310,7 +318,7 @@ class ChavesViewSet(ModelViewSet):
         sala = self.request.get_params.get("sala", None)
 
         if sala:
-            queryset = queryset.filter(sala_icontains_exact=sala)
+            queryset = queryset.filter(sala__nome__icontains__iexact=sala)
 
         return queryset
 
