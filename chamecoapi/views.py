@@ -7,12 +7,8 @@ from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from dotenv import load_dotenv
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import (
-    OpenApiExample,
-    OpenApiParameter,
-    OpenApiResponse,
-    extend_schema,
-)
+from drf_spectacular.utils import (OpenApiExample, OpenApiParameter,
+                                   OpenApiResponse, extend_schema)
 from rest_framework import status
 from rest_framework.generics import GenericAPIView
 from rest_framework.pagination import PageNumberPagination
@@ -23,13 +19,8 @@ from rest_framework.viewsets import ModelViewSet
 from .business import getTokens, requestFactory, setTokens
 from .models import Blocos, Chaves, Salas, Usuarios
 from .permissions import IsAdmin, IsTokenValid, IsUserAuthenticated
-from .serializers import (
-    BlocosSerializer,
-    ChavesSerializer,
-    LoginSerializer,
-    SalasSerializer,
-    UsuariosSerializer,
-)
+from .serializers import (BlocosSerializer, ChavesSerializer, LoginSerializer,
+                          SalasSerializer, UsuariosSerializer)
 
 load_dotenv()
 URL_BASE = os.environ.get("urlBase")
@@ -81,7 +72,8 @@ class LoginAPIView(GenericAPIView):
                 "user_id"
             ]
 
-            setTokens(id_user, response.json()["access"], response.json()["refresh"])
+            setTokens(id_user, response.json()[
+                      "access"], response.json()["refresh"])
 
             request.session["id_user"] = id_user
 
@@ -134,7 +126,8 @@ class UsuariosViewSet(ModelViewSet):
             except:
                 # Se a resposta for inválida, e não foi porque o usuário não existe
                 # então é porque o token guardado não é válido
-                data = {"status": "error", "detail": "Token de acesso inválido."}
+                data = {"status": "error",
+                        "detail": "Token de acesso inválido."}
                 return Response(data, status=status.HTTP_401_UNAUTHORIZED)
 
         return response
@@ -174,7 +167,8 @@ class UsuariosViewSet(ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=False)
+        serializer = self.get_serializer(
+            instance, data=request.data, partial=False)
         serializer.is_valid(raise_exception=True)
         serializer = serializer.validated_data
 
@@ -308,7 +302,7 @@ class ChavesViewSet(ModelViewSet):
     queryset = Chaves.objects.all()
     serializer_class = ChavesSerializer
     pagination_class = DefaultNumberPagination
-    permission_classes = [IsTokenValid]
+    permission_classes = [AllowAny]
 
     http_method_names = ["get", "post", "put", "delete", "head"]
 
