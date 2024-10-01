@@ -70,3 +70,36 @@ class SalasSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
     bloco = serializers.PrimaryKeyRelatedField(queryset=Blocos.objects.all())
+
+
+class ChavesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Chaves
+        fields = [
+            "sala",
+            "disponivel",
+            "usuarios_autorizados",
+            "usuarios",
+        ]
+
+        # Especeficação de que o campo "sala" é um uma chave primária relacionada ao Model Salas
+        # O queryset determina que o serializer aceitará apenas IDs de salas que existem
+        sala = serializers.PrimaryKeyRelatedField(queryset=Salas.objects.all())
+
+        #
+        usuarios_autorizados = serializers.PrimaryKeyRelatedField(
+            queryset=Usuarios.objects.all(), many=True, write_only=True, required=False
+        )
+
+        usuarios = serializers.SerializerMethodField(read_only=True)
+
+        # Método responsável por fornecer os dados para o campo "usuários"
+        def get_usuarios(self, obj):
+            data = []
+
+            queryset = PessoasAutorizadas.objects.filter(chave=obj)
+
+            for autorizacao in queryset:
+                data.append(str(autorizacao.usuario))
+
+            return data

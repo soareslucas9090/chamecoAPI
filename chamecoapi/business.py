@@ -7,7 +7,10 @@ from django.test import RequestFactory
 from dotenv import load_dotenv
 
 load_dotenv()
-URL_BASE_TOKEN = f"{os.environ.get("urlBase")}api/token/"
+
+url_base = os.environ.get("urlBase")
+
+URL_BASE_TOKEN = f"{url_base}api/token/"
 
 
 def requestFactory(
@@ -17,26 +20,26 @@ def requestFactory(
     body: dict[str, str] | None = None,
 ):
     request = getattr(requests, method.lower(), None)
-    
+
     if request is None:
         raise ValueError(f"Método {method} não é suportado.")
-    
-    
+
     # Testa todos as possibilidades possíveis de obter a autenticação, se não for possível retorna False
     # O retorno False deste trecho deve ser tratado na view como uma resposta HTTP 401
     auth = {}
     if isAuthenticated(id_user):
-        tokens= isTokenValid(id_user)
+        tokens = isTokenValid(id_user)
         if not tokens:
             return False
         else:
             auth = tokens
-    
+
     else:
         return False
-    
-    header = {"Authorization": f"Bearer {auth["access"]}"}
-    
+
+    access = auth["access"]
+    header = {"Authorization": f"Bearer {access}"}
+
     response = request(url, json=body, headers=header)
 
     return response
@@ -45,16 +48,18 @@ def requestFactory(
 def getTokens(id_user: int) -> dict[str, str | None] | None:
     access = cache.get(f"api_cortex_access_token_user_{id_user}")
     refresh = cache.get(f"api_cortex_refresh_token_user_{id_user}")
-    
+
     if not access and not refresh:
         return None
-    
+
     return {"access": access, "refresh": refresh}
 
 
 def setTokens(id_user: int, access: str, refresh: str):
-    cache.set(f"api_cortex_access_token_user_{id_user}", f"{access}", timeout=600)
-    cache.set(f"api_cortex_refresh_token_user_{id_user}", f"{refresh}", timeout=2100)
+    cache.set(
+        f"api_cortex_access_token_user_{id_user}", f"{access}", timeout=600)
+    cache.set(
+        f"api_cortex_refresh_token_user_{id_user}", f"{refresh}", timeout=2100)
 
 
 def verifyToken(id_user: int) -> bool:
@@ -92,17 +97,19 @@ def refreshToken(id_user: int) -> bool:
 
     return True
 
+
 def isTokenValid(id_user: int) -> dict[str, str | None] | bool:
     if verifyToken(id_user):
         auth = getTokens(id_user)
         return auth
-        
+
     elif refreshToken(id_user):
         auth = getTokens(id_user)
         return auth
-    
+
     else:
         return False
+
 
 def isAuthenticated(id_user: int) -> bool:
     isAuthenticated = False
