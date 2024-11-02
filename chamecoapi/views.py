@@ -7,8 +7,12 @@ from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from dotenv import load_dotenv
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import (OpenApiExample, OpenApiParameter,
-                                   OpenApiResponse, extend_schema)
+from drf_spectacular.utils import (
+    OpenApiExample,
+    OpenApiParameter,
+    OpenApiResponse,
+    extend_schema,
+)
 from rest_framework import status
 from rest_framework.generics import GenericAPIView
 from rest_framework.pagination import PageNumberPagination
@@ -19,8 +23,13 @@ from rest_framework.viewsets import ModelViewSet
 from .business import getTokens, requestFactory, setTokens
 from .models import Blocos, Chaves, Salas, Usuarios
 from .permissions import IsAdmin, IsTokenValid, IsUserAuthenticated
-from .serializers import (BlocosSerializer, ChavesSerializer, LoginSerializer,
-                          SalasSerializer, UsuariosSerializer)
+from .serializers import (
+    BlocosSerializer,
+    ChavesSerializer,
+    LoginSerializer,
+    SalasSerializer,
+    UsuariosSerializer,
+)
 
 load_dotenv()
 URL_BASE = os.environ.get("urlBase")
@@ -57,7 +66,7 @@ class LoginAPIView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer = serializer.validated_data
 
-        url = f"{URL_BASE}api/token/"
+        url = f"{URL_BASE}cortex/api/token/"
         body = {
             "cpf": serializer["cpf"],
             "password": serializer["password"],
@@ -72,14 +81,36 @@ class LoginAPIView(GenericAPIView):
                 "user_id"
             ]
 
-            setTokens(id_user, response.json()[
-                      "access"], response.json()["refresh"])
+            setTokens(id_user, response.json()["access"], response.json()["refresh"])
 
             request.session["id_user"] = id_user
 
             data = {"status": "success"}
 
+            try:
+
+                usuario = Usuarios.objects.get(id_cortex=id_user)
+
+                data["usuario"] = usuario.id
+
+                usuario_cortex = UsuariosViewSet.get_usuario(
+                    request, {"id_cortex": id_user}
+                )
+
+                if usuario_cortex.status_code == 200:
+                    setores = ", ".join(usuario_cortex.json()["nome_setores"])
+                    usuario.nome = usuario_cortex.json()["nome"]
+                    usuario.setor = setores
+                    usuario.tipo = usuario_cortex.json()["nome_tipo"]
+                    usuario.email = usuario_cortex.json()["email"]
+
+                    usuario.save()
+            except:
+                pass
+
         else:
+            data["usuario"] = None
+
             data = response.json()
 
         return Response(data, status=response.status_code)
@@ -92,9 +123,9 @@ class UsuariosViewSet(ModelViewSet):
     pagination_class = DefaultNumberPagination
     permission_classes = [IsTokenValid]
 
-    http_method_names = ["get", "post", "put", "delete", "head"]
+    http_method_names = ["get", "post", "delete", "head"]
 
-    def get_usuario(self, request: HttpRequest, serializer: dict) -> HttpResponse:
+    def get_usuario(request: HttpRequest, serializer: dict) -> HttpResponse:
         """
         Método feito para a busca, na API, do ID do usuário do Cortex, pois
         ele sempre precisar ser válido, tanto na criação, quanto edição do usuário
@@ -107,7 +138,7 @@ class UsuariosViewSet(ModelViewSet):
             return Response(data, status=status.HTTP_401_UNAUTHORIZED)
 
         id_cortex = serializer["id_cortex"]
-        url_get_user = f"{URL_BASE}api/gerusuarios/v1/users/{id_cortex}"
+        url_get_user = f"{URL_BASE}cortex/api/gerusuarios/v1/users/{id_cortex}"
 
         # Faz um get para verificar os detalhes do usuário na API do Cortex
         response = requestFactory("get", url_get_user, id_user)
@@ -126,8 +157,7 @@ class UsuariosViewSet(ModelViewSet):
             except:
                 # Se a resposta for inválida, e não foi porque o usuário não existe
                 # então é porque o token guardado não é válido
-                data = {"status": "error",
-                        "detail": "Token de acesso inválido."}
+                data = {"status": "error", "detail": "Token de acesso inválido."}
                 return Response(data, status=status.HTTP_401_UNAUTHORIZED)
 
         return response
@@ -137,7 +167,7 @@ class UsuariosViewSet(ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer = serializer.validated_data
 
-        response = self.get_usuario(request, serializer)
+        response = UsuariosViewSet.get_usuario(request, serializer)
 
         if response.status_code != 200:
             return response
@@ -150,6 +180,7 @@ class UsuariosViewSet(ModelViewSet):
             id_cortex=response.json()["id"],
             setor=setores,
             tipo=response.json()["nome_tipo"],
+            email=response.json()["email"],
         )
 
         result = {
@@ -164,39 +195,6 @@ class UsuariosViewSet(ModelViewSet):
         }
 
         return Response(result, status=status.HTTP_201_CREATED)
-
-    def update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(
-            instance, data=request.data, partial=False)
-        serializer.is_valid(raise_exception=True)
-        serializer = serializer.validated_data
-
-        if getattr(instance, "_prefetched_objects_cache", None):
-            # If 'prefetch_related' has been applied to a queryset, we need to
-            # forcibly invalidate the prefetch cache on the instance.
-            instance._prefetched_objects_cache = {}
-
-        response = self.get_usuario(request, serializer)
-
-        if response.status_code != 200:
-            return response
-
-        # Criando o usuário caso todas as verificações ocorram bem
-        setores = ", ".join(response.json()["nome_setores"])
-
-        usuario = Usuarios.objects.get(id=kwargs["pk"])
-
-        usuario.nome = response.json()["nome"]
-        usuario.id_cortex = response.json()["id"]
-        usuario.setor = setores
-        usuario.tipo = response.json()["nome_tipo"]
-        if serializer.get("chaves_autorizadas", None):
-            usuario.chaves_autorizadas = serializer["chaves_autorizadas"]
-
-        usuario.save()
-
-        return Response(self.get_serializer(usuario).data, status=status.HTTP_200_OK)
 
     def get_permissions(self):
         if self.request.method in ["PATCH", "DELETE", "PUT", "POST"]:

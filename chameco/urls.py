@@ -7,16 +7,16 @@ from drf_spectacular.views import (
 )
 
 urlpatterns = [
-    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("chameco/api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(
-        "api/schema/swagger/",
+        "chameco/api/schema/swagger/",
         SpectacularSwaggerView.as_view(url_name="schema"),
         name="swagger",
     ),
     path(
-        "api/schema/redoc/",
+        "chameco/api/schema/redoc/",
         SpectacularRedocView.as_view(url_name="schema"),
         name="redoc",
     ),
-    path("api/v1/", include("chamecoapi.urls")),
+    path("chameco/api/v1/", include("chamecoapi.urls")),
 ]

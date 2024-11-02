@@ -59,7 +59,10 @@ class Chaves(models.Model):
         ordering = ["id"]
 
     def __str__(self) -> str:
-        str = f"Chave {self.id} da sala {self.sala.nome}"
+        if self.id == 1:
+            str = f"Chave principal da sala {self.sala.nome}"
+        else:
+            str = f"Chave {self.id} da sala {self.sala.nome}"
         return str
 
 
@@ -81,7 +84,7 @@ class Emprestimos(models.Model):
     usuario_solicitante = models.ForeignKey(
         Usuarios,
         related_name="emprestimos_solicitados",
-        on_delete=models.CASCADE,
+        on_delete=models.DO_NOTHING,
         null=False,
     )
 

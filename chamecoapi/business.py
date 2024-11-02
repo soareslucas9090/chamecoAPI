@@ -3,14 +3,13 @@ from typing import Callable
 
 import requests
 from django.core.cache import cache
-from django.test import RequestFactory
 from dotenv import load_dotenv
 
 load_dotenv()
 
 url_base = os.environ.get("urlBase")
 
-URL_BASE_TOKEN = f"{url_base}api/token/"
+URL_BASE_TOKEN = f"{url_base}cortex/api/token/"
 
 
 def requestFactory(
@@ -27,7 +26,9 @@ def requestFactory(
     # Testa todos as possibilidades possíveis de obter a autenticação, se não for possível retorna False
     # O retorno False deste trecho deve ser tratado na view como uma resposta HTTP 401
     auth = {}
+
     if isAuthenticated(id_user):
+
         tokens = isTokenValid(id_user)
         if not tokens:
             return False
@@ -56,10 +57,8 @@ def getTokens(id_user: int) -> dict[str, str | None] | None:
 
 
 def setTokens(id_user: int, access: str, refresh: str):
-    cache.set(
-        f"api_cortex_access_token_user_{id_user}", f"{access}", timeout=600)
-    cache.set(
-        f"api_cortex_refresh_token_user_{id_user}", f"{refresh}", timeout=2100)
+    cache.set(f"api_cortex_access_token_user_{id_user}", f"{access}", timeout=600)
+    cache.set(f"api_cortex_refresh_token_user_{id_user}", f"{refresh}", timeout=2100)
 
 
 def verifyToken(id_user: int) -> bool:
