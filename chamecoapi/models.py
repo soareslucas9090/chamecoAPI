@@ -6,7 +6,7 @@ class Usuarios(models.Model):
     id_cortex = models.IntegerField(null=False, unique=True)
     setor = models.CharField(null=False)
     tipo = models.CharField(null=False)
-    chaves_autorizadas = models.ManyToManyField("Chaves", through="PessoasAutorizadas")
+    email = models.EmailField(null=True)
 
     class Meta:
         verbose_name = "Usuario"
@@ -52,9 +52,6 @@ class Chaves(models.Model):
         Salas, related_name="chave", on_delete=models.CASCADE, null=False
     )
     disponivel = models.BooleanField(default=True, null=False)
-    usuarios_autorizados = models.ManyToManyField(
-        Usuarios, through="PessoasAutorizadas"
-    )
 
     class Meta:
         verbose_name = "Chave"
@@ -62,24 +59,10 @@ class Chaves(models.Model):
         ordering = ["id"]
 
     def __str__(self) -> str:
-        str = f"Chave da sala {self.sala.nome}"
-        return str
-
-
-class PessoasAutorizadas(models.Model):
-    usuario = models.ForeignKey(
-        Usuarios,
-        on_delete=models.CASCADE,
-        null=False,
-    )
-    chave = models.ForeignKey(
-        Chaves,
-        on_delete=models.CASCADE,
-        null=False,
-    )
-
-    def __str__(self) -> str:
-        str = f"Usuario: {self.usuario}, chave: {self.chave}"
+        if self.id == 1:
+            str = f"Chave principal da sala {self.sala.nome}"
+        else:
+            str = f"Chave {self.id} da sala {self.sala.nome}"
         return str
 
 
@@ -93,15 +76,15 @@ class Emprestimos(models.Model):
         null=False,
     )
     usuario_responsavel = models.ForeignKey(
-        Usuarios,
+        "UsuariosResponsaveis",
         related_name="emprestimos_responsaveis",
-        on_delete=models.CASCADE,
+        on_delete=models.DO_NOTHING,
         null=False,
     )
     usuario_solicitante = models.ForeignKey(
         Usuarios,
         related_name="emprestimos_solicitados",
-        on_delete=models.CASCADE,
+        on_delete=models.DO_NOTHING,
         null=False,
     )
 
@@ -113,3 +96,13 @@ class Emprestimos(models.Model):
     def __str__(self) -> str:
         str = f"Horario: {self.horario_emprestimo}, chave: {self.chave}"
         return str
+
+
+class UsuariosResponsaveis(models.Model):
+    nome = models.CharField(max_length=128, null=False)
+    superusuario = models.ForeignKey(
+        Usuarios,
+        related_name="usuarios_responsaveis",
+        on_delete=models.CASCADE,
+        null=False,
+    )

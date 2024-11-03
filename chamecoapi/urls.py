@@ -1,13 +1,8 @@
 from django.urls import include, path
 from rest_framework.routers import SimpleRouter
 
-from .views import (
-    BlocosViewSet,
-    LoginAPIView,
-    SalasViewSet,
-    UsuariosViewSet,
-    ChavesViewSet,
-)
+from .views import (BlocosViewSet, ChavesViewSet, LoginAPIView, SalasViewSet,
+                    UsuariosViewSet)
 
 chameco_router = SimpleRouter()
 chameco_router.register("blocos", BlocosViewSet)

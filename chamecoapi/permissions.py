@@ -44,17 +44,30 @@ class IsAdmin(permissions.BasePermission):
         if not id_user:
             raise PermissionDenied(detail="É necessário autenticação.")
 
-        url_get_user = f"{URL_BASE}api/gerusuarios/v1/users/{id_user}"
+        url_get_user = f"{URL_BASE}cortex/api/gerusuarios/v1/users/{id_user}"
 
         response = requestFactory("get", url_get_user, id_user)
 
         if not response:
             raise PermissionDenied(detail="Usuário não encontrado.")
 
-        permitidos = ["admin", "ti"]
+        tipos_permitidos = ["admin", "ti"]
 
-        if response.json()["nome_tipo"] in permitidos:
+        if response.json()["nome_tipo"] in tipos_permitidos:
             return True
+
+        setores_permitidos = [
+            "Direcao Geral",
+            "Direcao de Ensino",
+            "Direcao de Administracao e Planejamento",
+            "TI",
+        ]
+
+        setores_usuario = response.json()["nome_setores"]
+
+        for setor in setores_permitidos:
+            if setor in setores_usuario:
+                return True
 
         raise PermissionDenied(
             detail="O tipo de usuário não permite executar esta ação."

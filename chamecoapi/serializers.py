@@ -4,7 +4,7 @@ from datetime import date
 from django.contrib.auth.hashers import make_password
 from rest_framework import serializers
 
-from .models import Blocos, Chaves, PessoasAutorizadas, Salas, Usuarios
+from .models import Blocos, Chaves, Salas, Usuarios
 
 
 class LoginSerializer(serializers.Serializer):
@@ -29,8 +29,6 @@ class UsuariosSerializer(serializers.ModelSerializer):
             "nome",
             "setor",
             "tipo",
-            "chaves_autorizadas",
-            "chaves",
         ]
 
         extra_kwargs = {
@@ -38,24 +36,6 @@ class UsuariosSerializer(serializers.ModelSerializer):
             "setor": {"read_only": True},
             "tipo": {"read_only": True},
         }
-
-    # Este é o campo destinado a escrita
-    chaves_autorizadas = serializers.PrimaryKeyRelatedField(
-        queryset=Chaves.objects.all(), many=True, write_only=True, required=False
-    )
-
-    # Este é o campo destinado a leitura
-    chaves = serializers.SerializerMethodField(read_only=True)
-
-    def get_chaves(self, obj):
-        data = []
-
-        queryset = PessoasAutorizadas.objects.filter(usuario=obj)
-
-        for autorizacao in queryset:
-            data.append(str(autorizacao.chave))
-
-        return data
 
 
 class BlocosSerializer(serializers.ModelSerializer):
@@ -78,28 +58,16 @@ class ChavesSerializer(serializers.ModelSerializer):
         fields = [
             "sala",
             "disponivel",
-            "usuarios_autorizados",
-            "usuarios",
         ]
 
-        # Especeficação de que o campo "sala" é um uma chave primária relacionada ao Model Salas
-        # O queryset determina que o serializer aceitará apenas IDs de salas que existem
-        sala = serializers.PrimaryKeyRelatedField(queryset=Salas.objects.all())
+    # Especeficação de que o campo "sala" é um uma chave primária relacionada ao Model Salas
+    # O queryset determina que o serializer aceitará apenas IDs de salas que existem
+    sala = serializers.PrimaryKeyRelatedField(queryset=Salas.objects.all())
 
-        #
-        usuarios_autorizados = serializers.PrimaryKeyRelatedField(
-            queryset=Usuarios.objects.all(), many=True, write_only=True, required=False
-        )
+    def validate_sala(self, value):
+        chave = Chaves.objects.filter(sala=value)
 
-        usuarios = serializers.SerializerMethodField(read_only=True)
+        if chave:
+            raise serializers.ValidationError("Uma sala só possui uma chave")
 
-        # Método responsável por fornecer os dados para o campo "usuários"
-        def get_usuarios(self, obj):
-            data = []
-
-            queryset = PessoasAutorizadas.objects.filter(chave=obj)
-
-            for autorizacao in queryset:
-                data.append(str(autorizacao.usuario))
-
-            return data
+        return value
