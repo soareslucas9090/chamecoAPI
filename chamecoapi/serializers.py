@@ -71,3 +71,8 @@ class ChavesSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Uma sala só possui uma chave")
 
         return value
+
+
+class AutorizadosSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    nome = serializers.CharField(read_only=True)

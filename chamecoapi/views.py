@@ -13,17 +13,18 @@ from drf_spectacular.utils import (
     OpenApiResponse,
     extend_schema,
 )
-from rest_framework import status
+from rest_framework import mixins, status
 from rest_framework.generics import GenericAPIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
 from .business import getTokens, requestFactory, setTokens
 from .models import Blocos, Chaves, Salas, Usuarios
 from .permissions import IsAdmin, IsTokenValid, IsUserAuthenticated
 from .serializers import (
+    AutorizadosSerializer,
     BlocosSerializer,
     ChavesSerializer,
     LoginSerializer,
@@ -37,6 +38,10 @@ URL_BASE = os.environ.get("urlBase")
 
 class DefaultNumberPagination(PageNumberPagination):
     page_size = 20
+
+
+class AuthorizedsNumberPagination(PageNumberPagination):
+    page_size = 9999
 
 
 @extend_schema(tags=["Login"])
@@ -74,6 +79,8 @@ class LoginAPIView(GenericAPIView):
 
         response = requests.post(url, json=body)
 
+        data = {}
+
         if response.status_code == 200:
             access_token = response.json()["access"]
 
@@ -109,8 +116,6 @@ class LoginAPIView(GenericAPIView):
                 pass
 
         else:
-            data["usuario"] = None
-
             data = response.json()
 
         return Response(data, status=response.status_code)
@@ -300,17 +305,17 @@ class ChavesViewSet(ModelViewSet):
     queryset = Chaves.objects.all()
     serializer_class = ChavesSerializer
     pagination_class = DefaultNumberPagination
-    permission_classes = [AllowAny]
+    permission_classes = [IsTokenValid]
 
     http_method_names = ["get", "post", "put", "delete", "head"]
 
     def get_queryset(self):
         queryset = super().get_queryset()
 
-        sala = self.request.get_params.get("sala", None)
+        sala = self.request.query_params.get("sala", None)
 
         if sala:
-            queryset = queryset.filter(sala__nome__icontains__iexact=sala)
+            queryset = queryset.filter(sala__nome__icontains=sala)
 
         return queryset
 
@@ -333,3 +338,18 @@ class ChavesViewSet(ModelViewSet):
             return [IsAdmin()]
 
         return super().get_permissions()
+
+
+@extend_schema(tags=["Usuários"])
+class AutorizadosViewSet(GenericViewSet, mixins.ListModelMixin):
+    queryset = Usuarios.objects.filter()
+    serializer_class = AutorizadosSerializer
+    pagination_class = AuthorizedsNumberPagination
+    permission_classes = [IsTokenValid]
+
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        return queryset.filter(tipo__icontains="professor")

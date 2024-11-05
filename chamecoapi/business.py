@@ -62,9 +62,12 @@ def setTokens(id_user: int, access: str, refresh: str):
 
 
 def verifyToken(id_user: int) -> bool:
-    token = getTokens(id_user)["access"]
+    token = getTokens(id_user)
 
-    data = {"token": token}
+    if token:
+        data = {"token": token["access"]}
+    else:
+        return False
 
     response = requests.post(url=f"{URL_BASE_TOKEN}verify/", json=data)
 
@@ -75,12 +78,12 @@ def verifyToken(id_user: int) -> bool:
 
 
 def refreshToken(id_user: int) -> bool:
-    refresh = getTokens(id_user)["refresh"]
+    refresh = getTokens(id_user)
 
     if refresh:
-        data = {"refresh": refresh}
+        data = {"refresh": refresh["refresh"]}
     else:
-        data = {"refresh": "null"}
+        return False
 
     response = requests.post(url=f"{URL_BASE_TOKEN}refresh/", json=data)
 
