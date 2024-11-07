@@ -7,6 +7,7 @@ class Usuarios(models.Model):
     setor = models.CharField(null=False)
     tipo = models.CharField(null=False)
     email = models.EmailField(null=True)
+    autorizado_emprestimo = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "Usuario"

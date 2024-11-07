@@ -23,13 +23,7 @@ class LoginSerializer(serializers.Serializer):
 class UsuariosSerializer(serializers.ModelSerializer):
     class Meta:
         model = Usuarios
-        fields = [
-            "id",
-            "id_cortex",
-            "nome",
-            "setor",
-            "tipo",
-        ]
+        fields = ["id", "id_cortex", "nome", "setor", "tipo", "autorizado_emprestimo"]
 
         extra_kwargs = {
             "nome": {"read_only": True},

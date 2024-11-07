@@ -130,6 +130,76 @@ class UsuariosViewSet(ModelViewSet):
 
     http_method_names = ["get", "post", "delete", "head"]
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        autorizado_emprestimo = self.request.query_params.get("autorizado")
+
+        if autorizado_emprestimo:
+            if autorizado_emprestimo.lower() == "false":
+                autorizado_emprestimo = False
+
+            elif autorizado_emprestimo.lower() == "true":
+                autorizado_emprestimo = True
+
+        if autorizado_emprestimo:
+            try:
+                queryset = queryset.filter(autorizado_emprestimo=True)
+            except Exception as e:
+                print(e)
+            return queryset
+
+        nome = self.request.query_params.get("nome")
+        tipo = self.request.query_params.get("tipo")
+        setor = self.request.query_params.get("setor")
+
+        if nome:
+            queryset = queryset.filter(nome__icontains=nome)
+
+        if tipo:
+            queryset = queryset.filter(tipo__icontains=tipo)
+
+        if setor:
+            queryset = queryset.filter(setor__icontains=setor)
+
+        return super().get_queryset()
+
+    @extend_schema(
+        description="Filtros de usários do sistema",
+        parameters=[
+            OpenApiParameter(
+                name="autorizado",
+                type=OpenApiTypes.BOOL,
+                description="Filtra os usuários pela possibilidade de pedir empréstimo ou não.",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="nome",
+                type=OpenApiTypes.STR,
+                description="Filtra os usuários pela nome.",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="tipo",
+                type=OpenApiTypes.STR,
+                description="Filtra os usuários pelo tipo.",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="setor",
+                type=OpenApiTypes.STR,
+                description="Filtra os usuários pelos setores.",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+        ],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     def get_usuario(request: HttpRequest, serializer: dict) -> HttpResponse:
         """
         Método feito para a busca, na API, do ID do usuário do Cortex, pois
@@ -200,6 +270,17 @@ class UsuariosViewSet(ModelViewSet):
         }
 
         return Response(result, status=status.HTTP_201_CREATED)
+
+    def get_serializer_class(self):
+        if self.request.query_params.get("autorizado", None):
+            return AutorizadosSerializer
+
+        return super().get_serializer_class()
+
+    def get_pagination_class(self):
+        if self.request.query_params.get("autorizado_emprestimo", None):
+            return AuthorizedsNumberPagination
+        return super().pagination_class
 
     def get_permissions(self):
         if self.request.method in ["PATCH", "DELETE", "PUT", "POST"]:
@@ -338,18 +419,3 @@ class ChavesViewSet(ModelViewSet):
             return [IsAdmin()]
 
         return super().get_permissions()
-
-
-@extend_schema(tags=["Usuários"])
-class AutorizadosViewSet(GenericViewSet, mixins.ListModelMixin):
-    queryset = Usuarios.objects.filter()
-    serializer_class = AutorizadosSerializer
-    pagination_class = AuthorizedsNumberPagination
-    permission_classes = [IsTokenValid]
-
-    http_method_names = ["get"]
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-
-        return queryset.filter(tipo__icontains="professor")
