@@ -107,3 +107,12 @@ class UsuariosResponsaveis(models.Model):
         on_delete=models.CASCADE,
         null=False,
     )
+
+    class Meta:
+        verbose_name = "Usuario Responsável"
+        verbose_name_plural = "Usuarios Responsaveis"
+        ordering = ["nome"]
+
+    def __str__(self) -> str:
+        str = f"{self.nome}"
+        return str

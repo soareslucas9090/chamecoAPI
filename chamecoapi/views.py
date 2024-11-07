@@ -21,14 +21,15 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
 from .business import getTokens, requestFactory, setTokens
-from .models import Blocos, Chaves, Salas, Usuarios
-from .permissions import IsAdmin, IsTokenValid, IsUserAuthenticated
+from .models import Blocos, Chaves, Salas, Usuarios, UsuariosResponsaveis
+from .permissions import CanLogIn, IsAdmin, IsTokenValid, IsUserAuthenticated
 from .serializers import (
     AutorizadosSerializer,
     BlocosSerializer,
     ChavesSerializer,
     LoginSerializer,
     SalasSerializer,
+    UsuariosResponsaveisSerializer,
     UsuariosSerializer,
 )
 
@@ -78,7 +79,7 @@ class LoginAPIView(GenericAPIView):
         }
 
         response = requests.post(url, json=body)
-
+        status_code = response.status_code
         data = {}
 
         if response.status_code == 200:
@@ -90,35 +91,40 @@ class LoginAPIView(GenericAPIView):
 
             setTokens(id_user, response.json()["access"], response.json()["refresh"])
 
-            request.session["id_user"] = id_user
+            usuario_cortex = UsuariosViewSet.get_usuario(
+                request, {"id_cortex": id_user}
+            )
 
-            data = {"status": "success"}
+            if CanLogIn().has_permission(request=request, view=self, id_user=id_user):
+                request.session["id_user"] = id_user
 
-            try:
+                data = {"status": "success"}
 
-                usuario = Usuarios.objects.get(id_cortex=id_user)
+                try:
 
-                data["usuario"] = usuario.id
+                    usuario = Usuarios.objects.get(id_cortex=id_user)
 
-                usuario_cortex = UsuariosViewSet.get_usuario(
-                    request, {"id_cortex": id_user}
-                )
+                    data["usuario"] = usuario.id
 
-                if usuario_cortex.status_code == 200:
-                    setores = ", ".join(usuario_cortex.json()["nome_setores"])
-                    usuario.nome = usuario_cortex.json()["nome"]
-                    usuario.setor = setores
-                    usuario.tipo = usuario_cortex.json()["nome_tipo"]
-                    usuario.email = usuario_cortex.json()["email"]
+                    if usuario_cortex.status_code == 200:
+                        setores = ", ".join(usuario_cortex.json()["nome_setores"])
+                        usuario.nome = usuario_cortex.json()["nome"]
+                        usuario.setor = setores
+                        usuario.tipo = usuario_cortex.json()["nome_tipo"]
+                        usuario.email = usuario_cortex.json()["email"]
 
-                    usuario.save()
-            except:
-                pass
+                        usuario.save()
+                except:
+                    pass
+
+            else:
+                data = {"status": "error", "message": "Usuário não autorizado."}
+                status_code = status.HTTP_403_FORBIDDEN
 
         else:
             data = response.json()
 
-        return Response(data, status=response.status_code)
+        return Response(data, status=status_code)
 
 
 @extend_schema(tags=["Usuários"])
@@ -344,12 +350,12 @@ class SalasViewSet(ModelViewSet):
         nome = self.request.query_params.get("nome", None)
 
         if nome:
-            queryset = queryset.filter(nome__icontains__iexact=nome)
+            queryset = queryset.filter(nome__icontains=nome)
 
         bloco = self.request.query_params.get("bloco", None)
 
         if bloco:
-            queryset = queryset.filter(bloco__nome__icontains__iexact=bloco)
+            queryset = queryset.filter(bloco__nome__icontains=bloco)
 
         return queryset
 
@@ -398,6 +404,11 @@ class ChavesViewSet(ModelViewSet):
         if sala:
             queryset = queryset.filter(sala__nome__icontains=sala)
 
+        bloco = self.request.query_params.get("bloco", None)
+
+        if bloco:
+            queryset = queryset.filter(bloco__nome__icontains=bloco)
+
         return queryset
 
     @extend_schema(
@@ -406,6 +417,87 @@ class ChavesViewSet(ModelViewSet):
                 name="sala",
                 type=OpenApiTypes.STR,
                 description="Filtrar pelo nome da sala",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="bloco",
+                type=OpenApiTypes.STR,
+                description="Filtrar pelo nome do bloco",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+        ],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    def get_permissions(self):
+        if self.request.method in ["PATCH", "DELETE", "PUT", "POST"]:
+            return [IsAdmin()]
+
+        return super().get_permissions()
+
+
+@extend_schema(tags=["Usuários Responsáveis"])
+class UsuariosResponsaveisViewSet(ModelViewSet):
+    queryset = UsuariosResponsaveis.objects.all()
+    serializer_class = UsuariosResponsaveisSerializer
+    pagination_class = DefaultNumberPagination
+    permission_classes = [IsTokenValid]
+
+    http_method_names = ["get", "post", "put", "delete", "head"]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        nome_superusuario = self.request.query_params.get("nome_superusuario", None)
+
+        if nome_superusuario:
+            queryset = queryset.filter(superusuario__nome__icontains=nome_superusuario)
+
+        superusuario = self.request.query_params.get("superusuario", None)
+
+        if superusuario and superusuario.isnumeric():
+            queryset = queryset.filter(superusuario__id=superusuario)
+
+        nome = self.request.query_params.get("nome", None)
+
+        if nome:
+            queryset = queryset.filter(nome__icontains=nome)
+
+        if not IsAdmin().has_permission(self.request, self, default_use=False):
+            id_user = self.request.session.get("id_user")
+
+            try:
+                usuario = Usuarios.objects.get(id_cortex=id_user)
+            except Usuarios.DoesNotExist:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+
+            queryset = queryset.filter(superusuario=usuario)
+
+        return queryset
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="superusuario",
+                type=OpenApiTypes.INT,
+                description="Filtrar pelo id do superusuário.",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="nome_superusuario",
+                type=OpenApiTypes.STR,
+                description="Filtrar pelo nome do superusuário.",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="nome",
+                type=OpenApiTypes.STR,
+                description="Filtrar pelo nome do usuário responsável.",
                 required=False,
                 location=OpenApiParameter.QUERY,
             ),

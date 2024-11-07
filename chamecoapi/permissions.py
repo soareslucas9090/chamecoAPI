@@ -31,14 +31,12 @@ class IsTokenValid(permissions.BasePermission):
         if isTokenValid(id_user):
             return True
 
-        raise PermissionDenied(
-            detail="Não foi possível autenticar, faça login novamente."
-        )
+        return False
 
 
 class IsAdmin(permissions.BasePermission):
 
-    def has_permission(self, request, view):
+    def has_permission(self, request, view, default_use=True):
         id_user = request.session.get("id_user")
 
         if not id_user:
@@ -57,18 +55,44 @@ class IsAdmin(permissions.BasePermission):
             return True
 
         setores_permitidos = [
-            "Direcao Geral",
-            "Direcao de Ensino",
-            "Direcao de Administracao e Planejamento",
             "TI",
         ]
 
         setores_usuario = response.json()["nome_setores"]
 
         for setor in setores_permitidos:
-            if setor in setores_usuario:
+            if setor.lower() in setores_usuario:
                 return True
 
-        raise PermissionDenied(
-            detail="O tipo de usuário não permite executar esta ação."
-        )
+        if default_use:
+            raise PermissionDenied(
+                detail="O tipo de usuário não permite executar esta ação."
+            )
+        else:
+            return False
+
+
+class CanLogIn(permissions.BasePermission):
+
+    def has_permission(self, request, view, id_user):
+        url_get_user = f"{URL_BASE}cortex/api/gerusuarios/v1/users/{id_user}"
+
+        response = requestFactory("get", url_get_user, id_user)
+
+        if not response:
+            raise PermissionDenied(detail="Usuário não encontrado.")
+
+        tipos_permitidos = ["admin", "ti"]
+
+        if response.json()["nome_tipo"] in tipos_permitidos:
+            return True
+
+        setores_permitidos = ["TI", "Guarita", "Coordenacao de Disciplina"]
+
+        setores_usuario = response.json()["nome_setores"]
+
+        for setor in setores_permitidos:
+            if setor.lower() in setores_usuario:
+                return True
+
+        return False

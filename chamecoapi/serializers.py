@@ -4,7 +4,7 @@ from datetime import date
 from django.contrib.auth.hashers import make_password
 from rest_framework import serializers
 
-from .models import Blocos, Chaves, Salas, Usuarios
+from .models import Blocos, Chaves, Salas, Usuarios, UsuariosResponsaveis
 
 
 class LoginSerializer(serializers.Serializer):
@@ -70,3 +70,9 @@ class ChavesSerializer(serializers.ModelSerializer):
 class AutorizadosSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     nome = serializers.CharField(read_only=True)
+
+
+class UsuariosResponsaveisSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UsuariosResponsaveis
+        fields = "__all__"
