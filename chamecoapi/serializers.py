@@ -4,7 +4,7 @@ from datetime import date
 from django.contrib.auth.hashers import make_password
 from rest_framework import serializers
 
-from .models import Blocos, Chaves, Salas, Usuarios, UsuariosResponsaveis
+from .models import Blocos, Chaves, Emprestimos, Salas, Usuarios, UsuariosResponsaveis
 
 
 class LoginSerializer(serializers.Serializer):
@@ -50,6 +50,7 @@ class ChavesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Chaves
         fields = [
+            "id",
             "sala",
             "disponivel",
         ]
@@ -76,3 +77,23 @@ class UsuariosResponsaveisSerializer(serializers.ModelSerializer):
     class Meta:
         model = UsuariosResponsaveis
         fields = "__all__"
+
+
+class EmprestimoDetalhadoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Emprestimos
+        fields = "__all__"
+
+    chave = serializers.PrimaryKeyRelatedField(queryset=Chaves.objects.all())
+    usuario_responsavel = serializers.PrimaryKeyRelatedField(
+        queryset=UsuariosResponsaveis.objects.all()
+    )
+    usuario_solicitante = serializers.PrimaryKeyRelatedField(
+        queryset=Usuarios.objects.all()
+    )
+
+
+class RealizarEmprestimoSerializer(serializers.Serializer):
+    chave = serializers.IntegerField(write_only=True)
+    usuario_responsavel = serializers.IntegerField(write_only=True)
+    usuario_solicitante = serializers.IntegerField(write_only=True)

@@ -5,6 +5,7 @@ import jwt
 import requests
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
+from django.shortcuts import get_object_or_404
 from dotenv import load_dotenv
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -14,6 +15,7 @@ from drf_spectacular.utils import (
     extend_schema,
 )
 from rest_framework import mixins, status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import GenericAPIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -21,13 +23,21 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
 from .business import getTokens, requestFactory, setTokens
-from .models import Blocos, Chaves, Salas, Usuarios, UsuariosResponsaveis
-from .permissions import CanLogIn, IsAdmin, IsTokenValid, IsUserAuthenticated
+from .models import Blocos, Chaves, Emprestimos, Salas, Usuarios, UsuariosResponsaveis
+from .permissions import (
+    CanLogIn,
+    CanUseSystem,
+    IsAdmin,
+    IsTokenValid,
+    IsUserAuthenticated,
+)
 from .serializers import (
     AutorizadosSerializer,
     BlocosSerializer,
     ChavesSerializer,
+    EmprestimoDetalhadoSerializer,
     LoginSerializer,
+    RealizarEmprestimoSerializer,
     SalasSerializer,
     UsuariosResponsaveisSerializer,
     UsuariosSerializer,
@@ -511,3 +521,120 @@ class UsuariosResponsaveisViewSet(ModelViewSet):
             return [IsAdmin()]
 
         return super().get_permissions()
+
+
+@extend_schema(tags=["Empréstimos"])
+class EmprestimoDetalhadoViewSet(GenericViewSet, mixins.ListModelMixin):
+    queryset = Emprestimos.objects.all()
+    serializer_class = EmprestimoDetalhadoSerializer
+    pagination_class = DefaultNumberPagination
+    permission_classes = [IsTokenValid]
+
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        data = self.request.query_params.get("data")
+        format = "%Y-%m-%d"
+        data_formatada = None
+
+        try:
+            data_formatada = datetime.strptime(data, format)
+        except:
+            data_formatada = None
+
+        if data_formatada:
+            queryset = queryset.filter(horario_emprestimo__date=data_formatada)
+
+        solicitante = self.request.query_params.get("solicitante", None)
+
+        if solicitante:
+            queryset = queryset.filter(usuario_solicitante__nome__icontains=solicitante)
+
+        responsavel = self.request.query_params.get("responsavel", None)
+
+        if responsavel:
+            queryset = queryset.filter(usuario_responsavel__nome__icontains=responsavel)
+
+        return queryset
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="data",
+                type=OpenApiTypes.STR,
+                description="Filtrar pela data do empréstimo.",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="solicitante",
+                type=OpenApiTypes.STR,
+                description="Filtrar pelo nome do usuário solicitante.",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="responsavel",
+                type=OpenApiTypes.STR,
+                description="Filtrar pelo nome do usuário responsável.",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+        ],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+
+@extend_schema(tags=["Empréstimos"])
+class RealizarEmprestimoView(GenericAPIView):
+    serializer_class = RealizarEmprestimoSerializer
+    http_method_names = ["post"]
+    permission_classes = [CanUseSystem]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            horario_emprestimo = datetime.now()
+
+            data_serializer = serializer.validated_data
+
+            chave = Chaves.objects.get(pk=data_serializer["chave"])
+
+            usuario_solicitante = Usuarios.objects.get(
+                pk=data_serializer["usuario_solicitante"]
+            )
+
+            usuario_responsavel = UsuariosResponsaveis.objects.get(
+                pk=data_serializer["usuario_responsavel"]
+            )
+        except Chaves.DoesNotExist:
+            data = {"status": "error", "message": "Chave não encontrada."}
+            return Response(status=status.HTTP_404_NOT_FOUND, data=data)
+
+        except Usuarios.DoesNotExist:
+            data = {
+                "status": "error",
+                "message": "Usuário solicitante não encontrado.",
+            }
+            return Response(status=status.HTTP_404_NOT_FOUND, data=data)
+        except UsuariosResponsaveis.DoesNotExist:
+            data = {
+                "status": "error",
+                "message": "Usuário responsável não encontrado.",
+            }
+            return Response(status=status.HTTP_404_NOT_FOUND, data=data)
+
+        emprestimo = Emprestimos.objects.create(
+            chave=chave,
+            usuario_solicitante=usuario_solicitante,
+            usuario_responsavel=usuario_responsavel,
+            horario_emprestimo=horario_emprestimo,
+        )
+        print(emprestimo)
+        data = {"status": "success"}
+
+        return Response(data, status=status.HTTP_201_CREATED)
