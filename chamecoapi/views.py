@@ -36,6 +36,7 @@ from .serializers import (
     BlocosSerializer,
     ChavesSerializer,
     EmprestimoDetalhadoSerializer,
+    FinalizarEmprestimoSerializer,
     LoginSerializer,
     RealizarEmprestimoSerializer,
     SalasSerializer,
@@ -524,7 +525,9 @@ class UsuariosResponsaveisViewSet(ModelViewSet):
 
 
 @extend_schema(tags=["Empréstimos"])
-class EmprestimoDetalhadoViewSet(GenericViewSet, mixins.ListModelMixin):
+class EmprestimoDetalhadoViewSet(
+    GenericViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin
+):
     queryset = Emprestimos.objects.all()
     serializer_class = EmprestimoDetalhadoSerializer
     pagination_class = DefaultNumberPagination
@@ -557,6 +560,22 @@ class EmprestimoDetalhadoViewSet(GenericViewSet, mixins.ListModelMixin):
         if responsavel:
             queryset = queryset.filter(usuario_responsavel__nome__icontains=responsavel)
 
+        finalizados = self.request.query_params.get("finalizados", None)
+
+        if finalizados:
+            if finalizados.lower() == "false":
+                finalizados = False
+
+            elif finalizados.lower() == "true":
+                finalizados = True
+
+            if finalizados:
+                queryset = queryset.filter(horario_devolucao__isnull=False)
+                queryset = queryset.order_by("-id")
+            else:
+                queryset = queryset.filter(horario_devolucao__isnull=True)
+                queryset = queryset.order_by("-id")
+
         return queryset
 
     @extend_schema(
@@ -579,6 +598,13 @@ class EmprestimoDetalhadoViewSet(GenericViewSet, mixins.ListModelMixin):
                 name="responsavel",
                 type=OpenApiTypes.STR,
                 description="Filtrar pelo nome do usuário responsável.",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="finalizados",
+                type=OpenApiTypes.BOOL,
+                description="Filtrar pelo status de emprestimo finalizado ou não.",
                 required=False,
                 location=OpenApiParameter.QUERY,
             ),
@@ -638,3 +664,32 @@ class RealizarEmprestimoView(GenericAPIView):
         data = {"status": "success"}
 
         return Response(data, status=status.HTTP_201_CREATED)
+
+
+@extend_schema(tags=["Empréstimos"])
+class FinalizarEmprestimoView(GenericAPIView):
+    serializer_class = FinalizarEmprestimoSerializer
+    http_method_names = ["post"]
+    permission_classes = [CanUseSystem]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            horario_devolucao = datetime.now()
+
+            data_serializer = serializer.validated_data
+
+            emprestimo = Emprestimos.objects.get(pk=data_serializer["id_emprestimo"])
+
+        except Emprestimos.DoesNotExist:
+            data = {"status": "error", "message": "Emprestimo não encontrado."}
+            return Response(status=status.HTTP_404_NOT_FOUND, data=data)
+
+        emprestimo.horario_devolucao = horario_devolucao
+
+        emprestimo.save()
+
+        data = {"status": "success"}
+
+        return Response(data, status=status.HTTP_200_OK)

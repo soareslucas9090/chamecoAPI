@@ -97,3 +97,7 @@ class RealizarEmprestimoSerializer(serializers.Serializer):
     chave = serializers.IntegerField(write_only=True)
     usuario_responsavel = serializers.IntegerField(write_only=True)
     usuario_solicitante = serializers.IntegerField(write_only=True)
+
+
+class FinalizarEmprestimoSerializer(serializers.Serializer):
+    id_emprestimo = serializers.IntegerField(write_only=True)

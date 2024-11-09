@@ -5,6 +5,7 @@ from .views import (
     BlocosViewSet,
     ChavesViewSet,
     EmprestimoDetalhadoViewSet,
+    FinalizarEmprestimoView,
     LoginAPIView,
     RealizarEmprestimoView,
     SalasViewSet,
@@ -27,5 +28,10 @@ urlpatterns = [
         "realizar-emprestimo/",
         RealizarEmprestimoView.as_view(),
         name="realizar-emprestimo",
+    ),
+    path(
+        "finalizar-emprestimo/",
+        FinalizarEmprestimoView.as_view(),
+        name="finalizar-emprestimo",
     ),
 ]
