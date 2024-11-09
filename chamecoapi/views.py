@@ -460,6 +460,17 @@ class ChavesViewSet(ModelViewSet):
         if bloco:
             queryset = queryset.filter(bloco__nome__icontains=bloco)
 
+        disponivel = self.request.query_params.get("disponivel")
+
+        if disponivel:
+            if disponivel.lower() == "false":
+                disponivel = False
+
+            elif disponivel.lower() == "true":
+                disponivel = True
+
+            queryset = queryset.filter(disponivel=disponivel)
+
         return queryset
 
     @extend_schema(
@@ -467,14 +478,21 @@ class ChavesViewSet(ModelViewSet):
             OpenApiParameter(
                 name="sala",
                 type=OpenApiTypes.STR,
-                description="Filtrar pelo nome da sala",
+                description="Filtrar pelo nome da sala.",
                 required=False,
                 location=OpenApiParameter.QUERY,
             ),
             OpenApiParameter(
                 name="bloco",
                 type=OpenApiTypes.STR,
-                description="Filtrar pelo nome do bloco",
+                description="Filtrar pelo nome do bloco.",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="disponivel",
+                type=OpenApiTypes.BOOL,
+                description="Filtrar pela disponibilidade da chave.",
                 required=False,
                 location=OpenApiParameter.QUERY,
             ),
@@ -695,6 +713,13 @@ class RealizarEmprestimoView(GenericAPIView):
             return Response(status=status.HTTP_404_NOT_FOUND, data=data)
 
         try:
+            if not chave.disponivel:
+                data = {
+                    "status": "error",
+                    "message": "Chave não disponível para empréstimo.",
+                }
+                return Response(status=status.HTTP_400_BAD_REQUEST, data=data)
+
             PessoasAutorizadas.objects.get(usuario=usuario_solicitante, chave=chave)
 
             Emprestimos.objects.create(
@@ -703,6 +728,9 @@ class RealizarEmprestimoView(GenericAPIView):
                 usuario_responsavel=usuario_responsavel,
                 horario_emprestimo=horario_emprestimo,
             )
+
+            chave.disponivel = False
+            chave.save()
 
             data = {"status": "success"}
 
@@ -736,8 +764,11 @@ class FinalizarEmprestimoView(GenericAPIView):
             return Response(status=status.HTTP_404_NOT_FOUND, data=data)
 
         emprestimo.horario_devolucao = horario_devolucao
-
         emprestimo.save()
+
+        chave = emprestimo.chave
+        chave.disponivel = True
+        chave.save()
 
         data = {"status": "success"}
 
