@@ -48,6 +48,7 @@ from .serializers import (
     LoginSerializer,
     RealizarEmprestimoSerializer,
     SalasSerializer,
+    TrocarEmprestimoSerializer,
     UsuariosResponsaveisSerializer,
     UsuariosSerializer,
 )
@@ -162,7 +163,7 @@ class UsuariosViewSet(ModelViewSet):
 
         if chave_autorizada and chave_autorizada.isnumeric():
             queryset = queryset.filter(
-                chaves_autorizadas__id=int(chave_autorizada)
+                chaves_autorizadas__id=int(chave_autorizada), autorizado_emprestimo=True
             ).distinct()
 
         nome = self.request.query_params.get("nome")
@@ -313,6 +314,7 @@ class UsuariosViewSet(ModelViewSet):
             usuario.id_cortex = response.json()["id"]
             usuario.setor = setores
             usuario.tipo = response.json()["nome_tipo"]
+            usuario.autorizado_emprestimo = serializer["autorizado_emprestimo"]
             if serializer.get("chaves_autorizadas", None):
                 usuario.chaves_autorizadas.set(serializer["chaves_autorizadas"])
 
@@ -712,35 +714,42 @@ class RealizarEmprestimoView(GenericAPIView):
             }
             return Response(status=status.HTTP_404_NOT_FOUND, data=data)
 
-        try:
-            if not chave.disponivel:
-                data = {
-                    "status": "error",
-                    "message": "Chave não disponível para empréstimo.",
-                }
-                return Response(status=status.HTTP_400_BAD_REQUEST, data=data)
+        if not usuario_solicitante.autorizado_emprestimo:
+            data = {
+                "status": "error",
+                "message": "Usuário não autorizado para empréstimo.",
+            }
+            return Response(status=status.HTTP_400_BAD_REQUEST, data=data)
 
-            PessoasAutorizadas.objects.get(usuario=usuario_solicitante, chave=chave)
+        if not chave.disponivel:
+            data = {
+                "status": "error",
+                "message": "Chave não disponível para empréstimo.",
+            }
+            return Response(status=status.HTTP_400_BAD_REQUEST, data=data)
 
-            Emprestimos.objects.create(
-                chave=chave,
-                usuario_solicitante=usuario_solicitante,
-                usuario_responsavel=usuario_responsavel,
-                horario_emprestimo=horario_emprestimo,
-            )
-
-            chave.disponivel = False
-            chave.save()
-
-            data = {"status": "success"}
-
-            return Response(data, status=status.HTTP_201_CREATED)
-        except PessoasAutorizadas.DoesNotExist:
+        if not PessoasAutorizadas.objects.filter(
+            chave=chave, usuario=usuario_solicitante
+        ).exists():
             data = {
                 "status": "error",
                 "message": "Usuário não autorizado para usar a chave.",
             }
-            return Response(status=status.HTTP_403_FORBIDDEN, data=data)
+            return Response(status=status.HTTP_400_BAD_REQUEST, data=data)
+
+        Emprestimos.objects.create(
+            chave=chave,
+            usuario_solicitante=usuario_solicitante,
+            usuario_responsavel=usuario_responsavel,
+            horario_emprestimo=horario_emprestimo,
+        )
+
+        chave.disponivel = False
+        chave.save()
+
+        data = {"status": "success"}
+
+        return Response(data, status=status.HTTP_201_CREATED)
 
 
 @extend_schema(tags=["Empréstimos"])
@@ -769,6 +778,80 @@ class FinalizarEmprestimoView(GenericAPIView):
         chave = emprestimo.chave
         chave.disponivel = True
         chave.save()
+
+        data = {"status": "success"}
+
+        return Response(data, status=status.HTTP_200_OK)
+
+
+@extend_schema(tags=["Empréstimos"])
+class TrocarEmprestimoView(GenericAPIView):
+    serializer_class = TrocarEmprestimoSerializer
+    http_method_names = ["post"]
+    permission_classes = [CanUseSystem]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            horario_troca = datetime.now()
+
+            data_serializer = serializer.validated_data
+
+            emprestimo = Emprestimos.objects.get(pk=data_serializer["id_emprestimo"])
+
+            novo_solicitante = Usuarios.objects.get(
+                pk=data_serializer["novo_solicitante"]
+            )
+
+            novo_responsavel = UsuariosResponsaveis.objects.get(
+                pk=data_serializer["novo_responsavel"]
+            )
+
+        except Emprestimos.DoesNotExist:
+            data = {"status": "error", "message": "Emprestimo não encontrado."}
+            return Response(status=status.HTTP_404_NOT_FOUND, data=data)
+
+        except Usuarios.DoesNotExist:
+            data = {"status": "error", "message": "Usuário não encontrado."}
+            return Response(status=status.HTTP_404_NOT_FOUND, data=data)
+
+        except UsuariosResponsaveis.DoesNotExist:
+            data = {"status": "error", "message": "Usuário responsável não encontrado."}
+            return Response(status=status.HTTP_404_NOT_FOUND, data=data)
+
+        if emprestimo.horario_devolucao:
+            data = {
+                "status": "error",
+                "message": "Emprestimo já finalizado.",
+            }
+            return Response(status=status.HTTP_400_BAD_REQUEST, data=data)
+
+        if not novo_solicitante.autorizado_emprestimo:
+            data = {
+                "status": "error",
+                "message": "Usuário não autorizado para empréstimo.",
+            }
+            return Response(status=status.HTTP_400_BAD_REQUEST, data=data)
+
+        if not PessoasAutorizadas.objects.filter(
+            usuario=novo_solicitante, chave=emprestimo.chave
+        ).exists():
+            data = {
+                "status": "error",
+                "message": "Usuário não autorizado para usar a chave.",
+            }
+            return Response(status=status.HTTP_400_BAD_REQUEST, data=data)
+
+        emprestimo.horario_devolucao = horario_troca
+        emprestimo.save()
+
+        Emprestimos.objects.create(
+            chave=emprestimo.chave,
+            usuario_solicitante=novo_solicitante,
+            usuario_responsavel=novo_responsavel,
+            horario_emprestimo=horario_troca,
+        )
 
         data = {"status": "success"}
 

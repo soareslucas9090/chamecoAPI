@@ -2,6 +2,7 @@ import os
 from datetime import date
 
 from django.contrib.auth.hashers import make_password
+from drf_spectacular.utils import OpenApiExample, extend_schema_field
 from rest_framework import serializers
 
 from .models import (
@@ -26,6 +27,11 @@ class LoginSerializer(serializers.Serializer):
             )
 
         return value
+
+
+class RetornoDeChavesEUsuariosSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    nome = serializers.CharField(max_length=128)
 
 
 class UsuariosSerializer(serializers.ModelSerializer):
@@ -57,6 +63,11 @@ class UsuariosSerializer(serializers.ModelSerializer):
     # Este é o campo destinado a leitura
     chaves = serializers.SerializerMethodField(read_only=True)
 
+    @extend_schema_field(
+        field=serializers.ListField(
+            child=RetornoDeChavesEUsuariosSerializer(),
+        )
+    )
     def get_chaves(self, obj):
         data = []
 
@@ -107,6 +118,11 @@ class ChavesSerializer(serializers.ModelSerializer):
     usuarios = serializers.SerializerMethodField(read_only=True)
 
     # Método responsável por fornecer os dados para o campo "usuários"
+    @extend_schema_field(
+        field=serializers.ListField(
+            child=RetornoDeChavesEUsuariosSerializer(),
+        )
+    )
     def get_usuarios(self, obj):
         data = []
 
@@ -154,3 +170,9 @@ class RealizarEmprestimoSerializer(serializers.Serializer):
 
 class FinalizarEmprestimoSerializer(serializers.Serializer):
     id_emprestimo = serializers.IntegerField(write_only=True)
+
+
+class TrocarEmprestimoSerializer(serializers.Serializer):
+    id_emprestimo = serializers.IntegerField(write_only=True)
+    novo_solicitante = serializers.IntegerField(write_only=True)
+    novo_responsavel = serializers.IntegerField(write_only=True)
