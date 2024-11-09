@@ -23,7 +23,15 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
 from .business import getTokens, requestFactory, setTokens
-from .models import Blocos, Chaves, Emprestimos, Salas, Usuarios, UsuariosResponsaveis
+from .models import (
+    Blocos,
+    Chaves,
+    Emprestimos,
+    PessoasAutorizadas,
+    Salas,
+    Usuarios,
+    UsuariosResponsaveis,
+)
 from .permissions import (
     CanLogIn,
     CanUseSystem,
@@ -145,26 +153,17 @@ class UsuariosViewSet(ModelViewSet):
     pagination_class = DefaultNumberPagination
     permission_classes = [IsTokenValid]
 
-    http_method_names = ["get", "post", "delete", "head"]
+    http_method_names = ["get", "put", "post", "delete", "head"]
 
     def get_queryset(self):
         queryset = super().get_queryset()
 
-        autorizado_emprestimo = self.request.query_params.get("autorizado")
+        chave_autorizada = self.request.query_params.get("chave_autorizada")
 
-        if autorizado_emprestimo:
-            if autorizado_emprestimo.lower() == "false":
-                autorizado_emprestimo = False
-
-            elif autorizado_emprestimo.lower() == "true":
-                autorizado_emprestimo = True
-
-        if autorizado_emprestimo:
-            try:
-                queryset = queryset.filter(autorizado_emprestimo=True)
-            except Exception as e:
-                print(e)
-            return queryset
+        if chave_autorizada and chave_autorizada.isnumeric():
+            queryset = queryset.filter(
+                chaves_autorizadas__id=int(chave_autorizada)
+            ).distinct()
 
         nome = self.request.query_params.get("nome")
         tipo = self.request.query_params.get("tipo")
@@ -179,15 +178,15 @@ class UsuariosViewSet(ModelViewSet):
         if setor:
             queryset = queryset.filter(setor__icontains=setor)
 
-        return super().get_queryset()
+        return queryset
 
     @extend_schema(
         description="Filtros de usários do sistema",
         parameters=[
             OpenApiParameter(
-                name="autorizado",
-                type=OpenApiTypes.BOOL,
-                description="Filtra os usuários pela possibilidade de pedir empréstimo ou não.",
+                name="chave_autorizada",
+                type=OpenApiTypes.INT,
+                description="Filtra os usuários pela possibilidade de pedir empréstimo ou não de determinada chave.",
                 required=False,
                 location=OpenApiParameter.QUERY,
             ),
@@ -287,6 +286,47 @@ class UsuariosViewSet(ModelViewSet):
         }
 
         return Response(result, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data, partial=False)
+            serializer.is_valid(raise_exception=True)
+            serializer = serializer.validated_data
+
+            if getattr(instance, "_prefetched_objects_cache", None):
+                # If 'prefetch_related' has been applied to a queryset, we need to
+                # forcibly invalidate the prefetch cache on the instance.
+                instance._prefetched_objects_cache = {}
+
+            response = UsuariosViewSet.get_usuario(request, serializer)
+
+            if response.status_code != 200:
+                return response
+
+            # Criando o usuário caso todas as verificações ocorram bem
+            setores = ", ".join(response.json()["nome_setores"])
+
+            usuario = Usuarios.objects.get(id=kwargs["pk"])
+
+            usuario.nome = response.json()["nome"]
+            usuario.id_cortex = response.json()["id"]
+            usuario.setor = setores
+            usuario.tipo = response.json()["nome_tipo"]
+            if serializer.get("chaves_autorizadas", None):
+                usuario.chaves_autorizadas.set(serializer["chaves_autorizadas"])
+
+            usuario.save()
+
+            return Response(
+                self.get_serializer(usuario).data, status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            print(e)
+            return Response(
+                {"status": "error", "detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     def get_serializer_class(self):
         if self.request.query_params.get("autorizado", None):
@@ -654,16 +694,25 @@ class RealizarEmprestimoView(GenericAPIView):
             }
             return Response(status=status.HTTP_404_NOT_FOUND, data=data)
 
-        emprestimo = Emprestimos.objects.create(
-            chave=chave,
-            usuario_solicitante=usuario_solicitante,
-            usuario_responsavel=usuario_responsavel,
-            horario_emprestimo=horario_emprestimo,
-        )
-        print(emprestimo)
-        data = {"status": "success"}
+        try:
+            PessoasAutorizadas.objects.get(usuario=usuario_solicitante, chave=chave)
 
-        return Response(data, status=status.HTTP_201_CREATED)
+            Emprestimos.objects.create(
+                chave=chave,
+                usuario_solicitante=usuario_solicitante,
+                usuario_responsavel=usuario_responsavel,
+                horario_emprestimo=horario_emprestimo,
+            )
+
+            data = {"status": "success"}
+
+            return Response(data, status=status.HTTP_201_CREATED)
+        except PessoasAutorizadas.DoesNotExist:
+            data = {
+                "status": "error",
+                "message": "Usuário não autorizado para usar a chave.",
+            }
+            return Response(status=status.HTTP_403_FORBIDDEN, data=data)
 
 
 @extend_schema(tags=["Empréstimos"])

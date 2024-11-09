@@ -8,6 +8,7 @@ class Usuarios(models.Model):
     tipo = models.CharField(null=False)
     email = models.EmailField(null=True)
     autorizado_emprestimo = models.BooleanField(default=False)
+    chaves_autorizadas = models.ManyToManyField("Chaves", through="PessoasAutorizadas")
 
     class Meta:
         verbose_name = "Usuario"
@@ -53,6 +54,9 @@ class Chaves(models.Model):
         Salas, related_name="chave", on_delete=models.CASCADE, null=False
     )
     disponivel = models.BooleanField(default=True, null=False)
+    usuarios_autorizados = models.ManyToManyField(
+        Usuarios, through="PessoasAutorizadas"
+    )
 
     class Meta:
         verbose_name = "Chave"
@@ -63,7 +67,24 @@ class Chaves(models.Model):
         if self.id == 1:
             str = f"Chave principal da sala {self.sala.nome}"
         else:
-            str = f"Chave {self.id} da sala {self.sala.nome}"
+            str = f"Chave reserva da sala {self.sala.nome}"
+        return str
+
+
+class PessoasAutorizadas(models.Model):
+    usuario = models.ForeignKey(
+        Usuarios,
+        on_delete=models.CASCADE,
+        null=False,
+    )
+    chave = models.ForeignKey(
+        Chaves,
+        on_delete=models.CASCADE,
+        null=False,
+    )
+
+    def __str__(self) -> str:
+        str = f"Usuario: {self.usuario}, chave: {self.chave}"
         return str
 
 
