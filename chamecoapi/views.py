@@ -772,6 +772,10 @@ class FinalizarEmprestimoView(GenericAPIView):
             data = {"status": "error", "message": "Emprestimo não encontrado."}
             return Response(status=status.HTTP_404_NOT_FOUND, data=data)
 
+        if emprestimo.horario_devolucao:
+            data = {"status": "error", "message": "Emprestimo já finalizado."}
+            return Response(status=status.HTTP_400_BAD_REQUEST, data=data)
+
         emprestimo.horario_devolucao = horario_devolucao
         emprestimo.save()
 

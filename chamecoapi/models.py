@@ -54,6 +54,7 @@ class Chaves(models.Model):
         Salas, related_name="chave", on_delete=models.CASCADE, null=False
     )
     disponivel = models.BooleanField(default=True, null=False)
+    principal = models.BooleanField(default=False, null=False)
     usuarios_autorizados = models.ManyToManyField(
         Usuarios, through="PessoasAutorizadas"
     )
