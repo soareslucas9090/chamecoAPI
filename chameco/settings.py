@@ -45,25 +45,20 @@ CACHES = {
     }
 }
 
-CORS_ORIGIN_WHITELIST = [
-    "https://cloud.seenode.com",
-    "http://127.0.0.1",
-    "https://127.0.0.1",
-]
+CSRF_TRUSTED_ORIGINS = os.environ.get(
+    "csrfTrustedOriginsANDcorsOriginWhitelist", ""
+).split(",")
 
-CORS_ALLOWED_HOSTS = [
-    "https://cloud.seenode.com",
-    "http://127.0.0.1",
-    "https://127.0.0.1",
-]
+# Indica quais são os endereços internos
+INTERNAL_IPS = os.environ.get("internalIPs", "").split(",")
+
+# Armazena os endereços confiáveis para CORS
+CORS_ORIGIN_WHITELIST = os.environ.get(
+    "csrfTrustedOriginsANDcorsOriginWhitelist", ""
+).split(",")
+
 
 CORS_ALLOW_CREDENTIALS = True
-
-CSRF_TRUSTED_ORIGINS = [
-    "https://cloud.seenode.com",
-    "http://127.0.0.1",
-    "https://127.0.0.1",
-]
 
 CORS_ALLOW_ALL_ORIGINS: True
 
