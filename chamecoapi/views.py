@@ -23,7 +23,14 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
-from .business import getIdUser, getTokens, requestFactory, setIdUser, setTokens
+from .business import (
+    getIdUser,
+    getTokens,
+    isTokenValid,
+    requestFactory,
+    setIdUser,
+    setTokens,
+)
 from .models import (
     Blocos,
     Chaves,
@@ -52,6 +59,7 @@ from .serializers import (
     TrocarEmprestimoSerializer,
     UsuariosResponsaveisSerializer,
     UsuariosSerializer,
+    VerifyTokenSerializer,
 )
 
 load_dotenv()
@@ -157,6 +165,34 @@ class LoginAPIView(GenericAPIView):
             data = response.json()
 
         return Response(data, status=status_code)
+
+
+@extend_schema(tags=["Login"])
+class VerifyTokenAPIView(GenericAPIView):
+    serializer_class = VerifyTokenSerializer
+    http_method_names = ["post"]
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        responses={
+            status.HTTP_200_OK: OpenApiResponse(description="Token válido."),
+            status.HTTP_401_UNAUTHORIZED: OpenApiResponse(
+                description="Token inválido."
+            ),
+        }
+    )
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer = serializer.validated_data
+
+        if isTokenValid(serializer["token"]):
+            return Response({"status": "success"}, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                {"status": "error", "message": "Token inválido."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
 
 @extend_schema(tags=["Usuários"])

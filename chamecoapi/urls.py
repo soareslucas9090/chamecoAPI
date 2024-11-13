@@ -12,6 +12,7 @@ from .views import (
     TrocarEmprestimoView,
     UsuariosResponsaveisViewSet,
     UsuariosViewSet,
+    VerifyTokenAPIView,
 )
 
 chameco_router = SimpleRouter()
@@ -25,6 +26,7 @@ urlpatterns = [
     ####### API #######
     path("", include(chameco_router.urls)),
     path("login/", LoginAPIView.as_view(), name="login"),
+    path("verify-token/", VerifyTokenAPIView.as_view(), name="veerify-token"),
     path(
         "realizar-emprestimo/",
         RealizarEmprestimoView.as_view(),

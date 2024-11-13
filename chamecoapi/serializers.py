@@ -16,6 +16,10 @@ from .models import (
 )
 
 
+class VerifyTokenSerializer(serializers.Serializer):
+    token = serializers.CharField(required=True)
+
+
 class LoginSerializer(serializers.Serializer):
     cpf = serializers.CharField(required=True)
     password = serializers.CharField(required=True)
