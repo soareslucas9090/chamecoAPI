@@ -126,6 +126,10 @@ class LoginAPIView(GenericAPIView):
 
                     data["usuario"] = usuario.id
 
+                    data["setor"] = usuario.setor
+                    data["tipo"] = usuario.tipo
+                    data["nome"] = usuario.nome
+
                     if usuario_cortex.status_code == 200:
                         setores = ", ".join(usuario_cortex.json()["nome_setores"])
                         usuario.nome = usuario_cortex.json()["nome"]
