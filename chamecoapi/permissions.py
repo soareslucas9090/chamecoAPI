@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from rest_framework import permissions
 from rest_framework.exceptions import PermissionDenied
 
-from .business import isTokenValid, requestFactory
+from .business import getIdUser, isTokenValid, requestFactory
 
 load_dotenv()
 URL_BASE = os.environ.get("urlBase")
@@ -14,7 +14,9 @@ URL_BASE = os.environ.get("urlBase")
 class IsUserAuthenticated(permissions.BasePermission):
 
     def has_permission(self, request, view):
-        id_user = request.session.get("id_user")
+        hash_token = request.query_params.get("token", None)
+
+        id_user = getIdUser(hash_token)
 
         # Verifica se há um "id_user" guardado na sessão do Django
         if not id_user:
@@ -26,9 +28,9 @@ class IsUserAuthenticated(permissions.BasePermission):
 class IsTokenValid(permissions.BasePermission):
 
     def has_permission(self, request, view):
-        id_user = request.session.get("id_user")
+        hash_token = request.query_params.get("token", None)
 
-        if isTokenValid(id_user):
+        if isTokenValid(hash_token):
             return True
 
         return False
@@ -37,14 +39,20 @@ class IsTokenValid(permissions.BasePermission):
 class IsAdmin(permissions.BasePermission):
 
     def has_permission(self, request, view, default_use=True):
-        id_user = request.session.get("id_user")
+        serializer = view.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer = serializer.validated_data
+
+        hash_token = serializer["token"]
+
+        id_user = getIdUser(hash_token)
 
         if not id_user:
             raise PermissionDenied(detail="É necessário autenticação.")
 
         url_get_user = f"{URL_BASE}cortex/api/gerusuarios/v1/users/{id_user}"
 
-        response = requestFactory("get", url_get_user, id_user)
+        response = requestFactory("get", url_get_user, hash_token)
 
         if not response:
             raise PermissionDenied(detail="Usuário não encontrado.")
@@ -74,10 +82,12 @@ class IsAdmin(permissions.BasePermission):
 
 class CanLogIn(permissions.BasePermission):
 
-    def has_permission(self, request, view, id_user):
+    def has_permission(self, request, view, hash_token):
+        id_user = getIdUser(hash_token)
+
         url_get_user = f"{URL_BASE}cortex/api/gerusuarios/v1/users/{id_user}"
 
-        response = requestFactory("get", url_get_user, id_user)
+        response = requestFactory("get", url_get_user, hash_token)
 
         if not response:
             raise PermissionDenied(detail="Usuário não encontrado.")
@@ -101,13 +111,20 @@ class CanLogIn(permissions.BasePermission):
 class CanUseSystem(permissions.BasePermission):
 
     def has_permission(self, request, view):
-        id_user = request.session.get("id_user")
+        serializer = view.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer = serializer.validated_data
+
+        hash_token = serializer["token"]
+
+        id_user = getIdUser(hash_token)
+
         if not id_user:
             raise PermissionDenied(detail="É necessário autenticação.")
 
         url_get_user = f"{URL_BASE}cortex/api/gerusuarios/v1/users/{id_user}"
 
-        response = requestFactory("get", url_get_user, id_user)
+        response = requestFactory("get", url_get_user, hash_token)
 
         if not response:
             raise PermissionDenied(detail="Usuário não encontrado.")

@@ -46,6 +46,7 @@ class UsuariosSerializer(serializers.ModelSerializer):
             "autorizado_emprestimo",
             "chaves",
             "chaves_autorizadas",
+            "token",
         ]
 
         extra_kwargs = {
@@ -55,6 +56,8 @@ class UsuariosSerializer(serializers.ModelSerializer):
         }
 
         # Este é o campo destinado a escrita
+
+    token = serializers.CharField(write_only=True, required=True)
 
     chaves_autorizadas = serializers.PrimaryKeyRelatedField(
         queryset=Chaves.objects.all(), many=True, write_only=True, required=False
@@ -87,11 +90,15 @@ class BlocosSerializer(serializers.ModelSerializer):
         model = Blocos
         fields = "__all__"
 
+    token = serializers.CharField(write_only=True, required=True)
+
 
 class SalasSerializer(serializers.ModelSerializer):
     class Meta:
         model = Salas
         fields = "__all__"
+
+    token = serializers.CharField(write_only=True, required=True)
 
     bloco = serializers.PrimaryKeyRelatedField(queryset=Blocos.objects.all())
 
@@ -105,8 +112,10 @@ class ChavesSerializer(serializers.ModelSerializer):
             "disponivel",
             "usuarios_autorizados",
             "usuarios",
+            "token",
         ]
 
+    token = serializers.CharField(write_only=True, required=True)
     # Especeficação de que o campo "sala" é um uma chave primária relacionada ao Model Salas
     # O queryset determina que o serializer aceitará apenas IDs de salas que existem
     sala = serializers.PrimaryKeyRelatedField(queryset=Salas.objects.all())
@@ -147,11 +156,15 @@ class UsuariosResponsaveisSerializer(serializers.ModelSerializer):
         model = UsuariosResponsaveis
         fields = "__all__"
 
+    token = serializers.CharField(write_only=True, required=True)
+
 
 class EmprestimoDetalhadoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Emprestimos
         fields = "__all__"
+
+    token = serializers.CharField(write_only=True, required=True)
 
     chave = serializers.PrimaryKeyRelatedField(queryset=Chaves.objects.all())
     usuario_responsavel = serializers.PrimaryKeyRelatedField(
@@ -166,13 +179,16 @@ class RealizarEmprestimoSerializer(serializers.Serializer):
     chave = serializers.IntegerField(write_only=True)
     usuario_responsavel = serializers.IntegerField(write_only=True)
     usuario_solicitante = serializers.IntegerField(write_only=True)
+    token = serializers.CharField(write_only=True, required=True)
 
 
 class FinalizarEmprestimoSerializer(serializers.Serializer):
     id_emprestimo = serializers.IntegerField(write_only=True)
+    token = serializers.CharField(write_only=True, required=True)
 
 
 class TrocarEmprestimoSerializer(serializers.Serializer):
     id_emprestimo = serializers.IntegerField(write_only=True)
     novo_solicitante = serializers.IntegerField(write_only=True)
     novo_responsavel = serializers.IntegerField(write_only=True)
+    token = serializers.CharField(write_only=True, required=True)

@@ -15,7 +15,7 @@ URL_BASE_TOKEN = f"{url_base}cortex/api/token/"
 def requestFactory(
     method: str,
     url: str,
-    id_user: int,
+    hash_token: str,
     body: dict[str, str] | None = None,
 ):
     request = getattr(requests, method.lower(), None)
@@ -27,9 +27,9 @@ def requestFactory(
     # O retorno False deste trecho deve ser tratado na view como uma resposta HTTP 401
     auth = {}
 
-    if isAuthenticated(id_user):
+    if isAuthenticated(hash_token):
 
-        tokens = isTokenValid(id_user)
+        tokens = isTokenValid(hash_token)
         if not tokens:
             return False
         else:
@@ -46,9 +46,9 @@ def requestFactory(
     return response
 
 
-def getTokens(id_user: int) -> dict[str, str | None] | None:
-    access = cache.get(f"api_cortex_access_token_user_{id_user}")
-    refresh = cache.get(f"api_cortex_refresh_token_user_{id_user}")
+def getTokens(hash_token: str) -> dict[str, str | None] | None:
+    access = cache.get(f"{hash_token}_access")
+    refresh = cache.get(f"{hash_token}_refresh")
 
     if not access and not refresh:
         return None
@@ -56,13 +56,26 @@ def getTokens(id_user: int) -> dict[str, str | None] | None:
     return {"access": access, "refresh": refresh}
 
 
-def setTokens(id_user: int, access: str, refresh: str):
-    cache.set(f"api_cortex_access_token_user_{id_user}", f"{access}", timeout=600)
-    cache.set(f"api_cortex_refresh_token_user_{id_user}", f"{refresh}", timeout=2100)
+def setTokens(hash_token: str, access: str, refresh: str):
+    cache.set(f"{hash_token}_access", f"{access}", timeout=600)
+    cache.set(f"{hash_token}_refresh", f"{refresh}", timeout=2100)
 
 
-def verifyToken(id_user: int) -> bool:
-    token = getTokens(id_user)
+def setIdUser(hash_token: str, id_user: int):
+    cache.set(f"{hash_token}_id_user", f"{id_user}", timeout=2100)
+
+
+def getIdUser(hash_token: str) -> int | None:
+    id_user = cache.get(f"{hash_token}_id_user")
+
+    if not id_user:
+        return None
+
+    return id_user
+
+
+def verifyToken(hash_token: str) -> bool:
+    token = getTokens(hash_token)
 
     if token:
         data = {"token": token["access"]}
@@ -77,8 +90,8 @@ def verifyToken(id_user: int) -> bool:
     return True
 
 
-def refreshToken(id_user: int) -> bool:
-    refresh = getTokens(id_user)
+def refreshToken(hash_token: str) -> bool:
+    refresh = getTokens(hash_token)
 
     if refresh:
         data = {"refresh": refresh["refresh"]}
@@ -88,35 +101,35 @@ def refreshToken(id_user: int) -> bool:
     response = requests.post(url=f"{URL_BASE_TOKEN}refresh/", json=data)
 
     if response.status_code != 200:
-        cache.delete(f"api_cortex_access_token_user_{id_user}")
-        cache.delete(f"api_cortex_refresh_token_user_{id_user}")
+        cache.delete(f"{hash_token}_access")
+        cache.delete(f"{hash_token}_refresh")
 
         return False
 
     data = response.json()
 
-    setTokens(id_user, data["access"], refresh)
+    setTokens(hash_token, data["access"], refresh)
 
     return True
 
 
-def isTokenValid(id_user: int) -> dict[str, str | None] | bool:
-    if verifyToken(id_user):
-        auth = getTokens(id_user)
+def isTokenValid(hash_token: str) -> dict[str, str | None] | bool:
+    if verifyToken(hash_token):
+        auth = getTokens(hash_token)
         return auth
 
-    elif refreshToken(id_user):
-        auth = getTokens(id_user)
+    elif refreshToken(hash_token):
+        auth = getTokens(hash_token)
         return auth
 
     else:
         return False
 
 
-def isAuthenticated(id_user: int) -> bool:
+def isAuthenticated(hash_token: str) -> bool:
     isAuthenticated = False
 
-    if getTokens(id_user):
+    if getTokens(hash_token):
         isAuthenticated = True
 
     return isAuthenticated

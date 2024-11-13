@@ -1,3 +1,4 @@
+import hashlib
 import os
 from datetime import datetime
 
@@ -22,7 +23,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
-from .business import getTokens, requestFactory, setTokens
+from .business import getIdUser, getTokens, requestFactory, setIdUser, setTokens
 from .models import (
     Blocos,
     Chaves,
@@ -109,15 +110,21 @@ class LoginAPIView(GenericAPIView):
                 "user_id"
             ]
 
-            setTokens(id_user, response.json()["access"], response.json()["refresh"])
+            hash_token = hashlib.sha256(
+                str(response.json()["access"] + response.json()["refresh"]).encode()
+            ).hexdigest()
+
+            setTokens(hash_token, response.json()["access"], response.json()["refresh"])
 
             usuario_cortex = UsuariosViewSet.get_usuario(
-                request, {"id_cortex": id_user}
+                request, {"id_cortex": id_user}, hash_token
             )
 
-            if CanLogIn().has_permission(request=request, view=self, id_user=id_user):
-                request.session["id_user"] = id_user
+            setIdUser(hash_token, id_user)
 
+            if CanLogIn().has_permission(
+                request=request, view=self, hash_token=hash_token
+            ):
                 data = {"status": "success"}
 
                 try:
@@ -125,10 +132,11 @@ class LoginAPIView(GenericAPIView):
                     usuario = Usuarios.objects.get(id_cortex=id_user)
 
                     data["usuario"] = usuario.id
-
                     data["setor"] = usuario.setor
                     data["tipo"] = usuario.tipo
                     data["nome"] = usuario.nome
+
+                    data["token"] = hash_token
 
                     if usuario_cortex.status_code == 200:
                         setores = ", ".join(usuario_cortex.json()["nome_setores"])
@@ -216,19 +224,43 @@ class UsuariosViewSet(ModelViewSet):
                 required=False,
                 location=OpenApiParameter.QUERY,
             ),
+            OpenApiParameter(
+                name="token",
+                type=OpenApiTypes.STR,
+                description="Campo obrigatório para uso do endpoint.",
+                required=True,
+                location=OpenApiParameter.QUERY,
+            ),
         ],
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    def get_usuario(request: HttpRequest, serializer: dict) -> HttpResponse:
+    @extend_schema(
+        description="Campos obrigatórios para obter resposta do endpoint.",
+        parameters=[
+            OpenApiParameter(
+                name="token",
+                type=OpenApiTypes.STR,
+                description="Campo obrigatório para uso do endpoint.",
+                required=True,
+                location=OpenApiParameter.QUERY,
+            ),
+        ],
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    def get_usuario(
+        request: HttpRequest, serializer: dict, hash_token: str
+    ) -> HttpResponse:
         """
         Método feito para a busca, na API, do ID do usuário do Cortex, pois
         ele sempre precisar ser válido, tanto na criação, quanto edição do usuário
         """
-        id_user = request.session.get("id_user")
+        id_user = getIdUser(hash_token)
 
-        # Verifica se há um "id_user" guardado na sessão do Django
+        # Verifica se há um "id_user" guardado no cache do Django
         if not id_user:
             data = {"status": "error", "detail": "Usuário não logado."}
             return Response(data, status=status.HTTP_401_UNAUTHORIZED)
@@ -237,7 +269,7 @@ class UsuariosViewSet(ModelViewSet):
         url_get_user = f"{URL_BASE}cortex/api/gerusuarios/v1/users/{id_cortex}"
 
         # Faz um get para verificar os detalhes do usuário na API do Cortex
-        response = requestFactory("get", url_get_user, id_user)
+        response = requestFactory("get", url_get_user, hash_token)
 
         # Verifica se a resposta é válida
         if not response:
@@ -263,7 +295,9 @@ class UsuariosViewSet(ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer = serializer.validated_data
 
-        response = UsuariosViewSet.get_usuario(request, serializer)
+        hash_token = serializer["token"]
+
+        response = UsuariosViewSet.get_usuario(request, serializer, hash_token)
 
         if response.status_code != 200:
             return response
@@ -304,7 +338,9 @@ class UsuariosViewSet(ModelViewSet):
                 # forcibly invalidate the prefetch cache on the instance.
                 instance._prefetched_objects_cache = {}
 
-            response = UsuariosViewSet.get_usuario(request, serializer)
+            hash_token = serializer["token"]
+
+            response = UsuariosViewSet.get_usuario(request, serializer, hash_token)
 
             if response.status_code != 200:
                 return response
@@ -380,10 +416,32 @@ class BlocosViewSet(ModelViewSet):
                 required=False,
                 location=OpenApiParameter.QUERY,
             ),
+            OpenApiParameter(
+                name="token",
+                type=OpenApiTypes.STR,
+                description="Campo obrigatório para uso do endpoint.",
+                required=True,
+                location=OpenApiParameter.QUERY,
+            ),
         ],
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+
+    @extend_schema(
+        description="Campos obrigatórios para obter resposta do endpoint.",
+        parameters=[
+            OpenApiParameter(
+                name="token",
+                type=OpenApiTypes.STR,
+                description="Campo obrigatório para uso do endpoint.",
+                required=True,
+                location=OpenApiParameter.QUERY,
+            ),
+        ],
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
     def get_permissions(self):
         if self.request.method in ["PATCH", "DELETE", "PUT", "POST"]:
@@ -432,10 +490,32 @@ class SalasViewSet(ModelViewSet):
                 required=False,
                 location=OpenApiParameter.QUERY,
             ),
+            OpenApiParameter(
+                name="token",
+                type=OpenApiTypes.STR,
+                description="Campo obrigatório para uso do endpoint.",
+                required=True,
+                location=OpenApiParameter.QUERY,
+            ),
         ],
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+
+    @extend_schema(
+        description="Campos obrigatórios para obter resposta do endpoint.",
+        parameters=[
+            OpenApiParameter(
+                name="token",
+                type=OpenApiTypes.STR,
+                description="Campo obrigatório para uso do endpoint.",
+                required=True,
+                location=OpenApiParameter.QUERY,
+            ),
+        ],
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
     def get_permissions(self):
         if self.request.method in ["PATCH", "DELETE", "PUT", "POST"]:
@@ -502,10 +582,32 @@ class ChavesViewSet(ModelViewSet):
                 required=False,
                 location=OpenApiParameter.QUERY,
             ),
+            OpenApiParameter(
+                name="token",
+                type=OpenApiTypes.STR,
+                description="Campo obrigatório para uso do endpoint.",
+                required=True,
+                location=OpenApiParameter.QUERY,
+            ),
         ],
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+
+    @extend_schema(
+        description="Campos obrigatórios para obter resposta do endpoint.",
+        parameters=[
+            OpenApiParameter(
+                name="token",
+                type=OpenApiTypes.STR,
+                description="Campo obrigatório para uso do endpoint.",
+                required=True,
+                location=OpenApiParameter.QUERY,
+            ),
+        ],
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
     def get_permissions(self):
         if self.request.method in ["PATCH", "DELETE", "PUT", "POST"]:
@@ -542,7 +644,9 @@ class UsuariosResponsaveisViewSet(ModelViewSet):
             queryset = queryset.filter(nome__icontains=nome)
 
         if not IsAdmin().has_permission(self.request, self, default_use=False):
-            id_user = self.request.session.get("id_user")
+            hash_token = self.request.query_params.get("token", None)
+
+            id_user = getIdUser(hash_token)
 
             try:
                 usuario = Usuarios.objects.get(id_cortex=id_user)
@@ -576,10 +680,32 @@ class UsuariosResponsaveisViewSet(ModelViewSet):
                 required=False,
                 location=OpenApiParameter.QUERY,
             ),
+            OpenApiParameter(
+                name="token",
+                type=OpenApiTypes.STR,
+                description="Campo obrigatório para uso do endpoint.",
+                required=True,
+                location=OpenApiParameter.QUERY,
+            ),
         ],
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+
+    @extend_schema(
+        description="Campos obrigatórios para obter resposta do endpoint.",
+        parameters=[
+            OpenApiParameter(
+                name="token",
+                type=OpenApiTypes.STR,
+                description="Campo obrigatório para uso do endpoint.",
+                required=True,
+                location=OpenApiParameter.QUERY,
+            ),
+        ],
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
     def get_permissions(self):
         if self.request.method in ["PATCH", "DELETE", "PUT", "POST"]:
@@ -672,10 +798,32 @@ class EmprestimoDetalhadoViewSet(
                 required=False,
                 location=OpenApiParameter.QUERY,
             ),
+            OpenApiParameter(
+                name="token",
+                type=OpenApiTypes.STR,
+                description="Campo obrigatório para uso do endpoint.",
+                required=True,
+                location=OpenApiParameter.QUERY,
+            ),
         ],
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+
+    @extend_schema(
+        description="Campos obrigatórios para obter resposta do endpoint.",
+        parameters=[
+            OpenApiParameter(
+                name="token",
+                type=OpenApiTypes.STR,
+                description="Campo obrigatório para uso do endpoint.",
+                required=True,
+                location=OpenApiParameter.QUERY,
+            ),
+        ],
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
 
 @extend_schema(tags=["Empréstimos"])
