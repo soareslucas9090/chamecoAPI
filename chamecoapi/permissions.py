@@ -83,29 +83,33 @@ class IsAdmin(permissions.BasePermission):
 class CanLogIn(permissions.BasePermission):
 
     def has_permission(self, request, view, hash_token):
-        id_user = getIdUser(hash_token)
+        try:
+            id_user = getIdUser(hash_token)
 
-        url_get_user = f"{URL_BASE}cortex/api/gerusuarios/v1/users/{id_user}"
+            url_get_user = f"{URL_BASE}cortex/api/gerusuarios/v1/users/{id_user}"
 
-        response = requestFactory("get", url_get_user, hash_token)
+            response = requestFactory("get", url_get_user, hash_token)
 
-        if not response:
-            raise PermissionDenied(detail="Usuário não encontrado.")
+            if not response:
+                raise PermissionDenied(detail="Usuário não encontrado.")
 
-        tipos_permitidos = ["admin", "ti"]
+            tipos_permitidos = ["admin", "ti"]
 
-        if response.json()["nome_tipo"] in tipos_permitidos:
-            return True
-
-        setores_permitidos = ["TI", "Guarita", "Coordenacao de Disciplina"]
-
-        setores_usuario = response.json()["nome_setores"]
-
-        for setor in setores_permitidos:
-            if setor.lower() in setores_usuario:
+            if response.json()["nome_tipo"] in tipos_permitidos:
                 return True
 
-        return False
+            setores_permitidos = ["TI", "Guarita", "Coordenacao de Disciplina"]
+
+            setores_usuario = response.json()["nome_setores"]
+
+            for setor in setores_permitidos:
+                if setor.lower() in setores_usuario:
+                    return True
+
+            return False
+        except Exception as e:
+            print(e)
+            return False
 
 
 class CanUseSystem(permissions.BasePermission):

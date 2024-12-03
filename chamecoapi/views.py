@@ -4,7 +4,6 @@ from datetime import datetime
 
 import jwt
 import requests
-from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404
 from dotenv import load_dotenv
@@ -296,7 +295,7 @@ class UsuariosViewSet(ModelViewSet):
         """
         id_user = getIdUser(hash_token)
 
-        # Verifica se há um "id_user" guardado no cache do Django
+        # Verifica se há um "id_user" guardado no banco do Django
         if not id_user:
             data = {"status": "error", "detail": "Usuário não logado."}
             return Response(data, status=status.HTTP_401_UNAUTHORIZED)

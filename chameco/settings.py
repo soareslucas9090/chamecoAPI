@@ -32,13 +32,6 @@ DATABASES = {
     }
 }
 
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        "LOCATION": "cache_django_chameco_api",
-    }
-}
-
 # Armazena os endereços confiáveis para CSRF
 CSRF_TRUSTED_ORIGINS = os.environ.get(
     "csrfTrustedOriginsANDcorsOriginWhitelist", ""

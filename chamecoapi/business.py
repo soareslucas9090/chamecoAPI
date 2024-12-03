@@ -1,9 +1,12 @@
 import os
+from datetime import timedelta
 from typing import Callable
 
 import requests
-from django.core.cache import cache
+from django.utils import timezone
 from dotenv import load_dotenv
+
+from .models import Tokens
 
 load_dotenv()
 
@@ -47,8 +50,20 @@ def requestFactory(
 
 
 def getTokens(hash_token: str) -> dict[str, str | None] | None:
-    access = cache.get(f"{hash_token}_access")
-    refresh = cache.get(f"{hash_token}_refresh")
+    Tokens.objects.filter(data_expiracao__lt=timezone.now()).delete()
+
+    access = None
+    refresh = None
+
+    try:
+        access = Tokens.objects.get(hash_token=f"{hash_token}_access").valor
+    except:
+        pass
+
+    try:
+        refresh = Tokens.objects.get(hash_token=f"{hash_token}_refresh").valor
+    except:
+        pass
 
     if not access and not refresh:
         return None
@@ -57,21 +72,46 @@ def getTokens(hash_token: str) -> dict[str, str | None] | None:
 
 
 def setTokens(hash_token: str, access: str, refresh: str):
-    cache.set(f"{hash_token}_access", f"{access}", timeout=600)
-    cache.set(f"{hash_token}_refresh", f"{refresh}", timeout=2100)
+    Tokens.objects.update_or_create(
+        hash_token=f"{hash_token}_access",
+        defaults={
+            "valor": access,
+            "data_expiracao": timezone.now() + timedelta(minutes=10),
+        },
+    )
+    Tokens.objects.update_or_create(
+        hash_token=f"{hash_token}_refresh",
+        defaults={
+            "valor": refresh,
+            "data_expiracao": timezone.now() + timedelta(minutes=35),
+        },
+    )
 
 
 def setIdUser(hash_token: str, id_user: int):
-    cache.set(f"{hash_token}_id_user", f"{id_user}", timeout=2100)
+    Tokens.objects.update_or_create(
+        hash_token=f"{hash_token}_id_user",
+        defaults={
+            "valor": str(id_user),
+            "data_expiracao": timezone.now() + timedelta(minutes=35),
+        },
+    )
 
 
 def getIdUser(hash_token: str) -> int | None:
-    id_user = cache.get(f"{hash_token}_id_user")
+    Tokens.objects.filter(data_expiracao__lt=timezone.now()).delete()
+
+    id_user = None
+
+    try:
+        id_user = Tokens.objects.get(hash_token=f"{hash_token}_id_user").valor
+    except:
+        pass
 
     if not id_user:
         return None
 
-    return id_user
+    return int(id_user)
 
 
 def verifyToken(hash_token: str) -> bool:
@@ -101,8 +141,8 @@ def refreshToken(hash_token: str) -> bool:
     response = requests.post(url=f"{URL_BASE_TOKEN}refresh/", json=data)
 
     if response.status_code != 200:
-        cache.delete(f"{hash_token}_access")
-        cache.delete(f"{hash_token}_refresh")
+        Tokens.objects.filter(hash_token=f"{hash_token}_access").delete()
+        Tokens.objects.filter(hash_token=f"{hash_token}_refresh").delete()
 
         return False
 

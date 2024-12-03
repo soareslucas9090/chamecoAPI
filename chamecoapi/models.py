@@ -1,6 +1,12 @@
 from django.db import models
 
 
+class Tokens(models.Model):
+    hash_token = models.CharField(primary_key=True, max_length=256, null=False)
+    valor = models.CharField(null=False)
+    data_expiracao = models.DateTimeField(null=False)
+
+
 class Usuarios(models.Model):
     nome = models.CharField(null=False)
     id_cortex = models.IntegerField(null=False, unique=True)
