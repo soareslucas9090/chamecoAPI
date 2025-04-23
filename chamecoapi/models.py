@@ -3,15 +3,15 @@ from django.db import models
 
 class Tokens(models.Model):
     hash_token = models.CharField(primary_key=True, max_length=256, null=False)
-    valor = models.CharField(null=False)
+    valor = models.CharField(max_length=512, null=False)
     data_expiracao = models.DateTimeField(null=False)
 
 
 class Usuarios(models.Model):
-    nome = models.CharField(null=False)
+    nome = models.CharField(max_length=512, null=False)
     id_cortex = models.IntegerField(null=False, unique=True)
-    setor = models.CharField(null=False)
-    tipo = models.CharField(null=False)
+    setor = models.CharField(max_length=512, null=False)
+    tipo = models.CharField(max_length=512, null=False)
     email = models.EmailField(null=True)
     autorizado_emprestimo = models.BooleanField(default=False)
     chaves_autorizadas = models.ManyToManyField("Chaves", through="PessoasAutorizadas")
@@ -56,8 +56,8 @@ class Salas(models.Model):
 
 
 class Chaves(models.Model):
-    sala = models.OneToOneField(
-        Salas, related_name="chave", on_delete=models.CASCADE, null=False
+    sala = models.ForeignKey(
+        Salas, related_name="chaves", on_delete=models.CASCADE, null=False
     )
     disponivel = models.BooleanField(default=True, null=False)
     principal = models.BooleanField(default=False, null=False)

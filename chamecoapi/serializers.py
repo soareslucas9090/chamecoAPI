@@ -158,15 +158,28 @@ class AutorizadosSerializer(serializers.Serializer):
 class UsuariosResponsaveisSerializer(serializers.ModelSerializer):
     class Meta:
         model = UsuariosResponsaveis
-        fields = "__all__"
+        fields = [
+            "nome",
+            "superusuario",
+            "token",
+        ]
 
     token = serializers.CharField(write_only=True, required=True)
+
+    superusuario = serializers.PrimaryKeyRelatedField(queryset=Usuarios.objects.all())
 
 
 class EmprestimoDetalhadoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Emprestimos
-        fields = "__all__"
+        fields = [
+            "horario_emprestimo",
+            "horario_devolucao",
+            "chave",
+            "usuario_responsavel",
+            "usuario_solicitante",
+            "token",
+        ]
 
     token = serializers.CharField(write_only=True, required=True)
 

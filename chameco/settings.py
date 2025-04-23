@@ -21,14 +21,21 @@ DEBUG = os.environ.get("debugMode")
 ALLOWED_HOSTS = [os.environ.get("allowedHosts")]
 
 # Configura o banco de dados
+# Configurações do banco em produção
+# DATABASES = {
+#     "default": {
+#         "ENGINE": os.environ.get("bdEngine"),
+#         "NAME": os.environ.get("bdName"),
+#         "USER": os.environ.get("bdUser"),
+#         "PASSWORD": os.environ.get("bdPass"),
+#         "HOST": os.environ.get("bdHost"),
+#         "PORT": os.environ.get("bdPort"),
+#     }
+# }
 DATABASES = {
     "default": {
-        "ENGINE": os.environ.get("bdEngine"),
-        "NAME": os.environ.get("bdName"),
-        "USER": os.environ.get("bdUser"),
-        "PASSWORD": os.environ.get("bdPass"),
-        "HOST": os.environ.get("bdHost"),
-        "PORT": os.environ.get("bdPort"),
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
 
@@ -150,7 +157,7 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
-STATIC_ROOT = os.path.join(BASE_DIR, "static/")
+STATIC_ROOT = "/home/chamecoapi/cortex/static"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

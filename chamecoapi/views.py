@@ -432,6 +432,14 @@ class BlocosViewSet(ModelViewSet):
 
     http_method_names = ["get", "post", "put", "delete", "head"]
 
+    def perform_update(self, serializer):
+        serializer.validated_data.pop('token')
+        serializer.save()
+
+    def perform_create(self, serializer):
+        serializer.validated_data.pop('token')
+        serializer.save()
+
     def get_queryset(self):
         queryset = super().get_queryset()
 
@@ -493,6 +501,14 @@ class SalasViewSet(ModelViewSet):
     permission_classes = [IsTokenValid]
 
     http_method_names = ["get", "post", "put", "delete", "head"]
+
+    def perform_update(self, serializer):
+        serializer.validated_data.pop('token')
+        serializer.save()
+
+    def perform_create(self, serializer):
+        serializer.validated_data.pop('token')
+        serializer.save()
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -567,6 +583,14 @@ class ChavesViewSet(ModelViewSet):
     permission_classes = [IsTokenValid]
 
     http_method_names = ["get", "post", "put", "delete", "head"]
+
+    def perform_update(self, serializer):
+        serializer.validated_data.pop('token')
+        serializer.save()
+
+    def perform_create(self, serializer):
+        serializer.validated_data.pop('token')
+        serializer.save()
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -660,6 +684,14 @@ class UsuariosResponsaveisViewSet(ModelViewSet):
 
     http_method_names = ["get", "post", "put", "delete", "head"]
 
+    def perform_update(self, serializer):
+        serializer.validated_data.pop('token')
+        serializer.save()
+
+    def perform_create(self, serializer):
+        serializer.validated_data.pop('token')
+        serializer.save()
+
     def get_queryset(self):
         queryset = super().get_queryset()
 
@@ -677,18 +709,6 @@ class UsuariosResponsaveisViewSet(ModelViewSet):
 
         if nome:
             queryset = queryset.filter(nome__icontains=nome)
-
-        if not IsAdmin().has_permission(self.request, self, default_use=False):
-            hash_token = self.request.query_params.get("token", None)
-
-            id_user = getIdUser(hash_token)
-
-            try:
-                usuario = Usuarios.objects.get(id_cortex=id_user)
-            except Usuarios.DoesNotExist:
-                return Response(status=status.HTTP_403_FORBIDDEN)
-
-            queryset = queryset.filter(superusuario=usuario)
 
         return queryset
 
@@ -867,6 +887,14 @@ class RealizarEmprestimoView(GenericAPIView):
     http_method_names = ["post"]
     permission_classes = [CanUseSystem]
 
+    def perform_update(self, serializer):
+        serializer.validated_data.pop('token')
+        serializer.save()
+
+    def perform_create(self, serializer):
+        serializer.validated_data.pop('token')
+        serializer.save()
+
     def post(self, request, *args, **kwargs):
         try:
             serializer = self.get_serializer(data=request.data)
@@ -945,6 +973,14 @@ class FinalizarEmprestimoView(GenericAPIView):
     http_method_names = ["post"]
     permission_classes = [CanUseSystem]
 
+    def perform_update(self, serializer):
+        serializer.validated_data.pop('token')
+        serializer.save()
+
+    def perform_create(self, serializer):
+        serializer.validated_data.pop('token')
+        serializer.save()
+
     def post(self, request, *args, **kwargs):
         try:
             serializer = self.get_serializer(data=request.data)
@@ -980,6 +1016,14 @@ class TrocarEmprestimoView(GenericAPIView):
     serializer_class = TrocarEmprestimoSerializer
     http_method_names = ["post"]
     permission_classes = [CanUseSystem]
+
+    def perform_update(self, serializer):
+        serializer.validated_data.pop('token')
+        serializer.save()
+
+    def perform_create(self, serializer):
+        serializer.validated_data.pop('token')
+        serializer.save()
 
     def post(self, request, *args, **kwargs):
         try:
