@@ -98,7 +98,7 @@ class CanLogIn(permissions.BasePermission):
             if response.json()["nome_tipo"] in tipos_permitidos:
                 return True
 
-            setores_permitidos = ["TI", "Guarita", "Coordenacao de Disciplina"]
+            setores_permitidos = ["TI", "Guarita", "Coordenacao de Disciplina", 'direcao geral', 'direcao de ensino']
 
             setores_usuario = response.json()["nome_setores"]
 
@@ -138,7 +138,7 @@ class CanUseSystem(permissions.BasePermission):
         if response.json()["nome_tipo"] in tipos_permitidos:
             return True
 
-        setores_permitidos = ["TI", "Guarita", "Coordenacao de Disciplina"]
+        setores_permitidos = ["TI", "Guarita", "Coordenacao de Disciplina", 'direcao geral', 'direcao de ensino']
 
         setores_usuario = response.json()["nome_setores"]
 
