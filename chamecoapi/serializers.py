@@ -116,6 +116,7 @@ class ChavesSerializer(serializers.ModelSerializer):
             "disponivel",
             "usuarios_autorizados",
             "usuarios",
+            "descricao",
             "token",
         ]
 
@@ -178,6 +179,7 @@ class EmprestimoDetalhadoSerializer(serializers.ModelSerializer):
             "chave",
             "usuario_responsavel",
             "usuario_solicitante",
+            "observacao",
             "token",
         ]
 
@@ -197,6 +199,7 @@ class RealizarEmprestimoSerializer(serializers.Serializer):
     usuario_responsavel = serializers.IntegerField(write_only=True)
     usuario_solicitante = serializers.IntegerField(write_only=True)
     token = serializers.CharField(write_only=True, required=True)
+    descricao = serializers.CharField(write_only=True)
 
 
 class FinalizarEmprestimoSerializer(serializers.Serializer):
