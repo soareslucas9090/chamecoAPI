@@ -64,6 +64,11 @@ class Chaves(models.Model):
     usuarios_autorizados = models.ManyToManyField(
         Usuarios, through="PessoasAutorizadas"
     )
+    descricao = models.CharField(
+        max_length=256,
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         verbose_name = "Chave"
@@ -115,6 +120,11 @@ class Emprestimos(models.Model):
         related_name="emprestimos_solicitados",
         on_delete=models.DO_NOTHING,
         null=False,
+    )
+    observacao = models.CharField(
+        max_length=256,
+        null=True,
+        blank=True,
     )
 
     class Meta:
