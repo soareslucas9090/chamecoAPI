@@ -39,7 +39,9 @@ class IsTokenValid(permissions.BasePermission):
 class IsAdmin(permissions.BasePermission):
 
     def has_permission(self, request, view, default_use=True):
-        serializer = view.get_serializer(data=request.data)
+        instance = view.get_object() if view.kwargs.get("pk", None) else None
+        
+        serializer = view.get_serializer(instance=instance, data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer = serializer.validated_data
 
