@@ -172,6 +172,7 @@ class UsuariosResponsaveisSerializer(serializers.ModelSerializer):
     class Meta:
         model = UsuariosResponsaveis
         fields = [
+            "id",
             "nome",
             "superusuario",
             "token",
@@ -186,6 +187,7 @@ class EmprestimoDetalhadoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Emprestimos
         fields = [
+            "id",
             "horario_emprestimo",
             "horario_devolucao",
             "chave",

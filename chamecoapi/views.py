@@ -408,6 +408,9 @@ class UsuariosViewSet(ModelViewSet):
     def get_serializer_class(self):
         if self.request.query_params.get("autorizado", None):
             return AutorizadosSerializer
+    
+        if self.request.method == "DELETE":
+            return None
 
         return super().get_serializer_class()
 
@@ -422,6 +425,21 @@ class UsuariosViewSet(ModelViewSet):
 
         return super().get_permissions()
 
+    
+    @extend_schema(
+        description="Campo para passagem do token",
+        parameters=[
+            OpenApiParameter(
+                name="token",
+                type=OpenApiTypes.STR,
+                description="Campo obrigatório para uso do endpoint.",
+                required=True,
+                location=OpenApiParameter.QUERY,
+            ),
+        ],
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
 
 @extend_schema(tags=["Blocos"])
 class BlocosViewSet(ModelViewSet):
@@ -486,6 +504,27 @@ class BlocosViewSet(ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
+    @extend_schema(
+        description="Campo para passagem do token",
+        parameters=[
+            OpenApiParameter(
+                name="token",
+                type=OpenApiTypes.STR,
+                description="Campo obrigatório para uso do endpoint.",
+                required=True,
+                location=OpenApiParameter.QUERY,
+            ),
+        ],
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+    
+    def get_serializer_class(self):
+        if self.request.method == "DELETE":
+            return None
+
+        return super().get_serializer_class()
+    
     def get_permissions(self):
         if self.request.method in ["PATCH", "DELETE", "PUT", "POST"]:
             return [IsAdmin()]
@@ -568,6 +607,27 @@ class SalasViewSet(ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
+    @extend_schema(
+        description="Campo para passagem do token",
+        parameters=[
+            OpenApiParameter(
+                name="token",
+                type=OpenApiTypes.STR,
+                description="Campo obrigatório para uso do endpoint.",
+                required=True,
+                location=OpenApiParameter.QUERY,
+            ),
+        ],
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+    
+    def get_serializer_class(self):
+        if self.request.method == "DELETE":
+            return None
+
+        return super().get_serializer_class()
+    
     def get_permissions(self):
         if self.request.method in ["PATCH", "DELETE", "PUT", "POST"]:
             return [IsAdmin()]
@@ -668,6 +728,27 @@ class ChavesViewSet(ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
+    @extend_schema(
+        description="Campo para passagem do token",
+        parameters=[
+            OpenApiParameter(
+                name="token",
+                type=OpenApiTypes.STR,
+                description="Campo obrigatório para uso do endpoint.",
+                required=True,
+                location=OpenApiParameter.QUERY,
+            ),
+        ],
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+    
+    def get_serializer_class(self):
+        if self.request.method == "DELETE":
+            return None
+
+        return super().get_serializer_class()
+    
     def get_permissions(self):
         if self.request.method in ["PATCH", "DELETE", "PUT", "POST"]:
             return [IsAdmin()]
@@ -762,6 +843,27 @@ class UsuariosResponsaveisViewSet(ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
+    @extend_schema(
+        description="Campo para passagem do token",
+        parameters=[
+            OpenApiParameter(
+                name="token",
+                type=OpenApiTypes.STR,
+                description="Campo obrigatório para uso do endpoint.",
+                required=True,
+                location=OpenApiParameter.QUERY,
+            ),
+        ],
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+    
+    def get_serializer_class(self):
+        if self.request.method == "DELETE":
+            return None
+
+        return super().get_serializer_class()
+    
     def get_permissions(self):
         if self.request.method in ["PATCH", "DELETE", "PUT", "POST"]:
             return [IsAdmin()]
@@ -957,6 +1059,7 @@ class RealizarEmprestimoView(GenericAPIView):
             usuario_solicitante=usuario_solicitante,
             usuario_responsavel=usuario_responsavel,
             horario_emprestimo=horario_emprestimo,
+            observacao=data_serializer["observacao"],
         )
 
         chave.disponivel = False
