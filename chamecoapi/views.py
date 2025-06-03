@@ -408,7 +408,7 @@ class UsuariosViewSet(ModelViewSet):
     def get_serializer_class(self):
         if self.request.query_params.get("autorizado", None):
             return AutorizadosSerializer
-    
+
         if self.request.method == "DELETE":
             return None
 
@@ -425,7 +425,6 @@ class UsuariosViewSet(ModelViewSet):
 
         return super().get_permissions()
 
-    
     @extend_schema(
         description="Campo para passagem do token",
         parameters=[
@@ -441,6 +440,7 @@ class UsuariosViewSet(ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
 
+
 @extend_schema(tags=["Blocos"])
 class BlocosViewSet(ModelViewSet):
     queryset = Blocos.objects.all()
@@ -451,11 +451,11 @@ class BlocosViewSet(ModelViewSet):
     http_method_names = ["get", "post", "put", "delete", "head"]
 
     def perform_update(self, serializer):
-        serializer.validated_data.pop('token')
+        serializer.validated_data.pop("token")
         serializer.save()
 
     def perform_create(self, serializer):
-        serializer.validated_data.pop('token')
+        serializer.validated_data.pop("token")
         serializer.save()
 
     def get_queryset(self):
@@ -518,13 +518,13 @@ class BlocosViewSet(ModelViewSet):
     )
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
-    
+
     def get_serializer_class(self):
         if self.request.method == "DELETE":
             return None
 
         return super().get_serializer_class()
-    
+
     def get_permissions(self):
         if self.request.method in ["PATCH", "DELETE", "PUT", "POST"]:
             return [IsAdmin()]
@@ -542,11 +542,11 @@ class SalasViewSet(ModelViewSet):
     http_method_names = ["get", "post", "put", "delete", "head"]
 
     def perform_update(self, serializer):
-        serializer.validated_data.pop('token')
+        serializer.validated_data.pop("token")
         serializer.save()
 
     def perform_create(self, serializer):
-        serializer.validated_data.pop('token')
+        serializer.validated_data.pop("token")
         serializer.save()
 
     def get_queryset(self):
@@ -621,13 +621,13 @@ class SalasViewSet(ModelViewSet):
     )
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
-    
+
     def get_serializer_class(self):
         if self.request.method == "DELETE":
             return None
 
         return super().get_serializer_class()
-    
+
     def get_permissions(self):
         if self.request.method in ["PATCH", "DELETE", "PUT", "POST"]:
             return [IsAdmin()]
@@ -645,11 +645,11 @@ class ChavesViewSet(ModelViewSet):
     http_method_names = ["get", "post", "put", "delete", "head"]
 
     def perform_update(self, serializer):
-        serializer.validated_data.pop('token')
+        serializer.validated_data.pop("token")
         serializer.save()
 
     def perform_create(self, serializer):
-        serializer.validated_data.pop('token')
+        serializer.validated_data.pop("token")
         serializer.save()
 
     def get_queryset(self):
@@ -742,13 +742,13 @@ class ChavesViewSet(ModelViewSet):
     )
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
-    
+
     def get_serializer_class(self):
         if self.request.method == "DELETE":
             return None
 
         return super().get_serializer_class()
-    
+
     def get_permissions(self):
         if self.request.method in ["PATCH", "DELETE", "PUT", "POST"]:
             return [IsAdmin()]
@@ -766,11 +766,11 @@ class UsuariosResponsaveisViewSet(ModelViewSet):
     http_method_names = ["get", "post", "put", "delete", "head"]
 
     def perform_update(self, serializer):
-        serializer.validated_data.pop('token')
+        serializer.validated_data.pop("token")
         serializer.save()
 
     def perform_create(self, serializer):
-        serializer.validated_data.pop('token')
+        serializer.validated_data.pop("token")
         serializer.save()
 
     def get_queryset(self):
@@ -857,13 +857,13 @@ class UsuariosResponsaveisViewSet(ModelViewSet):
     )
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
-    
+
     def get_serializer_class(self):
         if self.request.method == "DELETE":
             return None
 
         return super().get_serializer_class()
-    
+
     def get_permissions(self):
         if self.request.method in ["PATCH", "DELETE", "PUT", "POST"]:
             return [IsAdmin()]
@@ -990,11 +990,11 @@ class RealizarEmprestimoView(GenericAPIView):
     permission_classes = [CanUseSystem]
 
     def perform_update(self, serializer):
-        serializer.validated_data.pop('token')
+        serializer.validated_data.pop("token")
         serializer.save()
 
     def perform_create(self, serializer):
-        serializer.validated_data.pop('token')
+        serializer.validated_data.pop("token")
         serializer.save()
 
     def post(self, request, *args, **kwargs):
@@ -1054,18 +1054,18 @@ class RealizarEmprestimoView(GenericAPIView):
             }
             return Response(status=status.HTTP_400_BAD_REQUEST, data=data)
 
-        Emprestimos.objects.create(
+        emprestimo = Emprestimos.objects.create(
             chave=chave,
             usuario_solicitante=usuario_solicitante,
             usuario_responsavel=usuario_responsavel,
             horario_emprestimo=horario_emprestimo,
-            observacao=data_serializer["observacao"],
+            observacao=data_serializer.get("observacao", None),
         )
 
         chave.disponivel = False
         chave.save()
 
-        data = {"status": "success"}
+        data = {"status": "success", "emprestimo": emprestimo.id}
 
         return Response(data, status=status.HTTP_201_CREATED)
 
@@ -1077,11 +1077,11 @@ class FinalizarEmprestimoView(GenericAPIView):
     permission_classes = [CanUseSystem]
 
     def perform_update(self, serializer):
-        serializer.validated_data.pop('token')
+        serializer.validated_data.pop("token")
         serializer.save()
 
     def perform_create(self, serializer):
-        serializer.validated_data.pop('token')
+        serializer.validated_data.pop("token")
         serializer.save()
 
     def post(self, request, *args, **kwargs):
@@ -1121,11 +1121,11 @@ class TrocarEmprestimoView(GenericAPIView):
     permission_classes = [CanUseSystem]
 
     def perform_update(self, serializer):
-        serializer.validated_data.pop('token')
+        serializer.validated_data.pop("token")
         serializer.save()
 
     def perform_create(self, serializer):
-        serializer.validated_data.pop('token')
+        serializer.validated_data.pop("token")
         serializer.save()
 
     def post(self, request, *args, **kwargs):
@@ -1184,7 +1184,7 @@ class TrocarEmprestimoView(GenericAPIView):
         emprestimo.horario_devolucao = horario_troca
         emprestimo.save()
 
-        Emprestimos.objects.create(
+        emprestimo = Emprestimos.objects.create(
             chave=emprestimo.chave,
             usuario_solicitante=novo_solicitante,
             usuario_responsavel=novo_responsavel,

@@ -60,17 +60,21 @@ class UsuariosSerializer(serializers.ModelSerializer):
         }
 
         # Este é o campo destinado a escrita
-        
+
     def validate_id_cortex(self, value):
         user = self.instance
-        
+
         if user:
             if Usuarios.objects.filter(id_cortex=value).exclude(pk=user.pk).exists():
-                raise serializers.ValidationError("Já existe um usuário com este id_cortex.")
+                raise serializers.ValidationError(
+                    "Já existe um usuário com este id_cortex."
+                )
         else:
             if Usuarios.objects.filter(id_cortex=value).exists():
-                raise serializers.ValidationError("Já existe um usuário com este id_cortex.")
-        
+                raise serializers.ValidationError(
+                    "Já existe um usuário com este id_cortex."
+                )
+
         return value
 
     token = serializers.CharField(write_only=True, required=True)
@@ -213,7 +217,7 @@ class RealizarEmprestimoSerializer(serializers.Serializer):
     usuario_responsavel = serializers.IntegerField(write_only=True)
     usuario_solicitante = serializers.IntegerField(write_only=True)
     token = serializers.CharField(write_only=True, required=True)
-    observacao = serializers.CharField(write_only=True)
+    observacao = serializers.CharField(write_only=True, required=False)
 
 
 class FinalizarEmprestimoSerializer(serializers.Serializer):
