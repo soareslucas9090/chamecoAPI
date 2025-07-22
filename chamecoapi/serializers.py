@@ -24,14 +24,6 @@ class LoginSerializer(serializers.Serializer):
     cpf = serializers.CharField(required=True)
     password = serializers.CharField(required=True)
 
-    def validate_password(self, value):
-        if len(value) < 8:
-            raise serializers.ValidationError(
-                "A senha deve ter pelo menos 8 caracteres"
-            )
-
-        return value
-
 
 class RetornoDeChavesEUsuariosSerializer(serializers.Serializer):
     id = serializers.IntegerField()
@@ -184,7 +176,8 @@ class UsuariosResponsaveisSerializer(serializers.ModelSerializer):
 
     token = serializers.CharField(write_only=True, required=True)
 
-    superusuario = serializers.PrimaryKeyRelatedField(queryset=Usuarios.objects.all())
+    superusuario = serializers.PrimaryKeyRelatedField(
+        queryset=Usuarios.objects.all())
 
 
 class EmprestimoDetalhadoSerializer(serializers.ModelSerializer):

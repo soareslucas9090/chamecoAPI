@@ -118,16 +118,20 @@ class LoginAPIView(GenericAPIView):
             ]
 
             hash_token = hashlib.sha256(
-                str(response.json()["access"] + response.json()["refresh"]).encode()
+                str(
+                    response.json()["access"] +
+                    response.json()["refresh"]
+                ).encode()
             ).hexdigest()
 
-            setTokens(hash_token, response.json()["access"], response.json()["refresh"])
+            setTokens(hash_token, response.json()[
+                      "access"], response.json()["refresh"])
+
+            setIdUser(hash_token, id_user)
 
             usuario_cortex = UsuariosViewSet.get_usuario(
                 request, {"id_cortex": id_user}, hash_token
             )
-
-            setIdUser(hash_token, id_user)
 
             if CanLogIn().has_permission(
                 request=request, view=self, hash_token=hash_token
@@ -136,28 +140,33 @@ class LoginAPIView(GenericAPIView):
 
                 try:
 
-                    usuario = Usuarios.objects.get(id_cortex=id_user)
-
-                    data["usuario"] = usuario.id
-                    data["setor"] = usuario.setor
-                    data["tipo"] = usuario.tipo
-                    data["nome"] = usuario.nome
-
-                    data["token"] = hash_token
+                    usuario, created = Usuarios.objects.get_or_create(
+                        id_cortex=id_user
+                    )
 
                     if usuario_cortex.status_code == 200:
-                        setores = ", ".join(usuario_cortex.json()["nome_setores"])
+                        setores = ", ".join(
+                            usuario_cortex.json()["nome_setores"]
+                        )
                         usuario.nome = usuario_cortex.json()["nome"]
                         usuario.setor = setores
                         usuario.tipo = usuario_cortex.json()["nome_tipo"]
                         usuario.email = usuario_cortex.json()["email"]
 
                         usuario.save()
+
+                        data["usuario"] = usuario.id
+                        data["setor"] = usuario.setor
+                        data["tipo"] = usuario.tipo
+                        data["nome"] = usuario.nome
+
+                        data["token"] = hash_token
                 except:
                     pass
 
             else:
-                data = {"status": "error", "message": "Usuário não autorizado."}
+                data = {"status": "error",
+                        "message": "Usuário não autorizado."}
                 status_code = status.HTTP_403_FORBIDDEN
 
         else:
@@ -320,7 +329,8 @@ class UsuariosViewSet(ModelViewSet):
             except:
                 # Se a resposta for inválida, e não foi porque o usuário não existe
                 # então é porque o token guardado não é válido
-                data = {"status": "error", "detail": "Token de acesso inválido."}
+                data = {"status": "error",
+                        "detail": "Token de acesso inválido."}
                 return Response(data, status=status.HTTP_401_UNAUTHORIZED)
 
         return response
@@ -364,7 +374,8 @@ class UsuariosViewSet(ModelViewSet):
     def update(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            serializer = self.get_serializer(instance, data=request.data, partial=False)
+            serializer = self.get_serializer(
+                instance, data=request.data, partial=False)
             serializer.is_valid(raise_exception=True)
             serializer = serializer.validated_data
 
@@ -375,7 +386,8 @@ class UsuariosViewSet(ModelViewSet):
 
             hash_token = serializer["token"]
 
-            response = UsuariosViewSet.get_usuario(request, serializer, hash_token)
+            response = UsuariosViewSet.get_usuario(
+                request, serializer, hash_token)
 
             if response.status_code != 200:
                 return response
@@ -391,7 +403,8 @@ class UsuariosViewSet(ModelViewSet):
             usuario.tipo = response.json()["nome_tipo"]
             usuario.autorizado_emprestimo = serializer["autorizado_emprestimo"]
             if serializer.get("chaves_autorizadas", None):
-                usuario.chaves_autorizadas.set(serializer["chaves_autorizadas"])
+                usuario.chaves_autorizadas.set(
+                    serializer["chaves_autorizadas"])
 
             usuario.save()
 
@@ -776,10 +789,12 @@ class UsuariosResponsaveisViewSet(ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
 
-        nome_superusuario = self.request.query_params.get("nome_superusuario", None)
+        nome_superusuario = self.request.query_params.get(
+            "nome_superusuario", None)
 
         if nome_superusuario:
-            queryset = queryset.filter(superusuario__nome__icontains=nome_superusuario)
+            queryset = queryset.filter(
+                superusuario__nome__icontains=nome_superusuario)
 
         superusuario = self.request.query_params.get("superusuario", None)
 
@@ -900,12 +915,14 @@ class EmprestimoDetalhadoViewSet(
         solicitante = self.request.query_params.get("solicitante", None)
 
         if solicitante:
-            queryset = queryset.filter(usuario_solicitante__nome__icontains=solicitante)
+            queryset = queryset.filter(
+                usuario_solicitante__nome__icontains=solicitante)
 
         responsavel = self.request.query_params.get("responsavel", None)
 
         if responsavel:
-            queryset = queryset.filter(usuario_responsavel__nome__icontains=responsavel)
+            queryset = queryset.filter(
+                usuario_responsavel__nome__icontains=responsavel)
 
         finalizados = self.request.query_params.get("finalizados", None)
 
@@ -1092,7 +1109,8 @@ class FinalizarEmprestimoView(GenericAPIView):
 
             data_serializer = serializer.validated_data
 
-            emprestimo = Emprestimos.objects.get(pk=data_serializer["id_emprestimo"])
+            emprestimo = Emprestimos.objects.get(
+                pk=data_serializer["id_emprestimo"])
 
         except Emprestimos.DoesNotExist:
             data = {"status": "error", "message": "Emprestimo não encontrado."}
@@ -1136,7 +1154,8 @@ class TrocarEmprestimoView(GenericAPIView):
 
             data_serializer = serializer.validated_data
 
-            emprestimo = Emprestimos.objects.get(pk=data_serializer["id_emprestimo"])
+            emprestimo = Emprestimos.objects.get(
+                pk=data_serializer["id_emprestimo"])
 
             novo_solicitante = Usuarios.objects.get(
                 pk=data_serializer["novo_solicitante"]
@@ -1155,7 +1174,8 @@ class TrocarEmprestimoView(GenericAPIView):
             return Response(status=status.HTTP_404_NOT_FOUND, data=data)
 
         except UsuariosResponsaveis.DoesNotExist:
-            data = {"status": "error", "message": "Usuário responsável não encontrado."}
+            data = {"status": "error",
+                    "message": "Usuário responsável não encontrado."}
             return Response(status=status.HTTP_404_NOT_FOUND, data=data)
 
         if emprestimo.horario_devolucao:
