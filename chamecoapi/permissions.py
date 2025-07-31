@@ -40,14 +40,15 @@ class IsAdmin(permissions.BasePermission):
 
     def has_permission(self, request, view, default_use=True):
         instance = view.get_object() if view.kwargs.get("pk", None) else None
-        
+
         if request.method == "DELETE":
             hash_token = request.query_params.get("token", None)
         else:
-            serializer = view.get_serializer(instance=instance, data=request.data)
+            serializer = view.get_serializer(
+                instance=instance, data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer = serializer.validated_data
-            
+
             hash_token = serializer["token"]
 
         id_user = getIdUser(hash_token)
@@ -98,12 +99,17 @@ class CanLogIn(permissions.BasePermission):
             if not response:
                 raise PermissionDenied(detail="Usuário não encontrado.")
 
-            tipos_permitidos = ["admin", "ti"]
+            tipos_permitidos = [
+                "admin", "ti", "coordenador", "aluno", "Serv.Terceirizado", "professor", "tec.administrativo", "Engenheiro",
+                "enfermeiro", "engenheiro", "medico", "nutricionista", "odontologo", "pedagogo", "psicologo", "vigilante"
+            ]
 
             if response.json()["nome_tipo"] in tipos_permitidos:
                 return True
 
-            setores_permitidos = ["TI", "Guarita", "Coordenacao de Disciplina", 'direcao geral', 'direcao de ensino']
+            setores_permitidos = [
+                "TI", "Guarita", "Coordenacao de Disciplina", 'direcao geral', 'direcao de ensino', "VIGILANTE", "limpeza", "aux. cozinha"
+            ]
 
             setores_usuario = response.json()["nome_setores"]
 
@@ -119,12 +125,13 @@ class CanLogIn(permissions.BasePermission):
 
 class CanUseSystem(permissions.BasePermission):
 
-    def has_permission(self, request, view):
+    def has_permission(self, request, view, hash_token=None):
         serializer = view.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer = serializer.validated_data
 
-        hash_token = serializer["token"]
+        if not hash_token:
+            hash_token = serializer["token"]
 
         id_user = getIdUser(hash_token)
 
@@ -138,12 +145,14 @@ class CanUseSystem(permissions.BasePermission):
         if not response:
             raise PermissionDenied(detail="Usuário não encontrado.")
 
-        tipos_permitidos = ["admin", "ti"]
+        tipos_permitidos = ["admin", "ti", "coordenador", "vigilante"]
 
         if response.json()["nome_tipo"] in tipos_permitidos:
             return True
 
-        setores_permitidos = ["TI", "Guarita", "Coordenacao de Disciplina", 'direcao geral', 'direcao de ensino']
+        setores_permitidos = [
+            "TI", "Guarita", "Coordenacao de Disciplina", 'direcao geral', 'direcao de ensino', "vigilante"
+        ]
 
         setores_usuario = response.json()["nome_setores"]
 
@@ -151,4 +160,5 @@ class CanUseSystem(permissions.BasePermission):
             if setor.lower() in setores_usuario:
                 return True
 
-        raise PermissionDenied(detail="Usuário sem permissão para executar esta ação.")
+        raise PermissionDenied(
+            detail="Usuário sem permissão para executar esta ação.")

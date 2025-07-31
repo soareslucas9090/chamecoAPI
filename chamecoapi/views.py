@@ -160,7 +160,10 @@ class LoginAPIView(GenericAPIView):
                         data["tipo"] = usuario.tipo
                         data["nome"] = usuario.nome
 
-                        data["token"] = hash_token
+                        if CanUseSystem().has_permission(
+                            request=request, view=self, hash_token=hash_token
+                        ):
+                            data["token"] = hash_token
                 except:
                     pass
 
