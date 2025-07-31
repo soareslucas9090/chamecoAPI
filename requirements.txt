@@ -23,5 +23,6 @@ rpds-py==0.20.0
 sqlparse==0.5.1
 tzdata==2024.1
 uritemplate==4.1.1
+openpyxl==3.1.5
 urllib3==2.2.2
 whitenoise==6.7.0
