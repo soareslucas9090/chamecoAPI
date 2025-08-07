@@ -66,7 +66,27 @@ URL_BASE = os.environ.get("urlBase")
 
 
 class DefaultNumberPagination(PageNumberPagination):
-    page_size = 20
+    page_size = 5
+
+
+class DynamicPagination(PageNumberPagination):
+    page_size = 5
+    page_size_query_param = 'pagination'
+    max_page_size = 100
+
+    def get_page_size(self, request):
+        if self.page_size_query_param:
+            try:
+                page_size = int(
+                    request.query_params[self.page_size_query_param]
+                )
+
+                if page_size > 0 and page_size <= self.max_page_size:
+                    return page_size
+            except (KeyError, ValueError):
+                pass
+
+        return self.page_size
 
 
 class AuthorizedsNumberPagination(PageNumberPagination):
@@ -210,7 +230,7 @@ class VerifyTokenAPIView(GenericAPIView):
 class UsuariosViewSet(ModelViewSet):
     queryset = Usuarios.objects.all()
     serializer_class = UsuariosSerializer
-    pagination_class = DefaultNumberPagination
+    pagination_class = DynamicPagination
     permission_classes = [IsTokenValid]
 
     http_method_names = ["get", "put", "post", "delete", "head"]
@@ -222,7 +242,7 @@ class UsuariosViewSet(ModelViewSet):
 
         if chave_autorizada and chave_autorizada.isnumeric():
             queryset = queryset.filter(
-                chaves_autorizadas__id=int(chave_autorizada), autorizado_emprestimo=True
+                chaves_autorizadas__id=int(chave_autorizada)
             ).distinct()
 
         nome = self.request.query_params.get("nome")
@@ -268,6 +288,13 @@ class UsuariosViewSet(ModelViewSet):
                 name="setor",
                 type=OpenApiTypes.STR,
                 description="Filtra os usuários pelos setores.",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="pagination",
+                type=OpenApiTypes.INT,
+                description="Define o número de itens por página (máximo 100, padrão 5).",
                 required=False,
                 location=OpenApiParameter.QUERY,
             ),
@@ -404,7 +431,6 @@ class UsuariosViewSet(ModelViewSet):
             usuario.id_cortex = response.json()["id"]
             usuario.setor = setores
             usuario.tipo = response.json()["nome_tipo"]
-            usuario.autorizado_emprestimo = serializer["autorizado_emprestimo"]
             if serializer.get("chaves_autorizadas", None):
                 usuario.chaves_autorizadas.set(
                     serializer["chaves_autorizadas"])
@@ -429,11 +455,6 @@ class UsuariosViewSet(ModelViewSet):
             return None
 
         return super().get_serializer_class()
-
-    def get_pagination_class(self):
-        if self.request.query_params.get("autorizado_emprestimo", None):
-            return AuthorizedsNumberPagination
-        return super().pagination_class
 
     def get_permissions(self):
         if self.request.method in ["PATCH", "DELETE", "PUT", "POST"]:
@@ -461,7 +482,7 @@ class UsuariosViewSet(ModelViewSet):
 class BlocosViewSet(ModelViewSet):
     queryset = Blocos.objects.all()
     serializer_class = BlocosSerializer
-    pagination_class = DefaultNumberPagination
+    pagination_class = DynamicPagination
     permission_classes = [IsTokenValid]
 
     http_method_names = ["get", "post", "put", "delete", "head"]
@@ -490,6 +511,13 @@ class BlocosViewSet(ModelViewSet):
                 name="nome",
                 type=OpenApiTypes.STR,
                 description="Filtrar pelo nome do bloco",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="pagination",
+                type=OpenApiTypes.INT,
+                description="Define o número de itens por página (máximo 100, padrão 5).",
                 required=False,
                 location=OpenApiParameter.QUERY,
             ),
@@ -552,7 +580,7 @@ class BlocosViewSet(ModelViewSet):
 class SalasViewSet(ModelViewSet):
     queryset = Salas.objects.all()
     serializer_class = SalasSerializer
-    pagination_class = DefaultNumberPagination
+    pagination_class = DynamicPagination
     permission_classes = [IsTokenValid]
 
     http_method_names = ["get", "post", "put", "delete", "head"]
@@ -593,6 +621,13 @@ class SalasViewSet(ModelViewSet):
                 name="bloco",
                 type=OpenApiTypes.STR,
                 description="Filtrar pelo nome do bloco",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="pagination",
+                type=OpenApiTypes.INT,
+                description="Define o número de itens por página (máximo 100, padrão 5).",
                 required=False,
                 location=OpenApiParameter.QUERY,
             ),
@@ -655,7 +690,7 @@ class SalasViewSet(ModelViewSet):
 class ChavesViewSet(ModelViewSet):
     queryset = Chaves.objects.all()
     serializer_class = ChavesSerializer
-    pagination_class = DefaultNumberPagination
+    pagination_class = DynamicPagination
     permission_classes = [IsTokenValid]
 
     http_method_names = ["get", "post", "put", "delete", "head"]
@@ -718,6 +753,13 @@ class ChavesViewSet(ModelViewSet):
                 location=OpenApiParameter.QUERY,
             ),
             OpenApiParameter(
+                name="pagination",
+                type=OpenApiTypes.INT,
+                description="Define o número de itens por página (máximo 100, padrão 5).",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
                 name="token",
                 type=OpenApiTypes.STR,
                 description="Campo obrigatório para uso do endpoint.",
@@ -776,7 +818,7 @@ class ChavesViewSet(ModelViewSet):
 class UsuariosResponsaveisViewSet(ModelViewSet):
     queryset = UsuariosResponsaveis.objects.all()
     serializer_class = UsuariosResponsaveisSerializer
-    pagination_class = DefaultNumberPagination
+    pagination_class = DynamicPagination
     permission_classes = [IsTokenValid]
 
     http_method_names = ["get", "post", "put", "delete", "head"]
@@ -831,6 +873,13 @@ class UsuariosResponsaveisViewSet(ModelViewSet):
                 name="nome",
                 type=OpenApiTypes.STR,
                 description="Filtrar pelo nome do usuário responsável.",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="pagination",
+                type=OpenApiTypes.INT,
+                description="Define o número de itens por página (máximo 100, padrão 5).",
                 required=False,
                 location=OpenApiParameter.QUERY,
             ),
@@ -895,7 +944,7 @@ class EmprestimoDetalhadoViewSet(
 ):
     queryset = Emprestimos.objects.all()
     serializer_class = EmprestimoDetalhadoSerializer
-    pagination_class = DefaultNumberPagination
+    pagination_class = DynamicPagination
     permission_classes = [IsTokenValid]
 
     http_method_names = ["get"]
@@ -976,6 +1025,13 @@ class EmprestimoDetalhadoViewSet(
                 location=OpenApiParameter.QUERY,
             ),
             OpenApiParameter(
+                name="pagination",
+                type=OpenApiTypes.INT,
+                description="Define o número de itens por página (máximo 100, padrão 5).",
+                required=False,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
                 name="token",
                 type=OpenApiTypes.STR,
                 description="Campo obrigatório para uso do endpoint.",
@@ -1050,13 +1106,6 @@ class RealizarEmprestimoView(GenericAPIView):
                 "message": "Usuário responsável não encontrado.",
             }
             return Response(status=status.HTTP_404_NOT_FOUND, data=data)
-
-        if not usuario_solicitante.autorizado_emprestimo:
-            data = {
-                "status": "error",
-                "message": "Usuário não autorizado para empréstimo.",
-            }
-            return Response(status=status.HTTP_400_BAD_REQUEST, data=data)
 
         if not chave.disponivel:
             data = {
@@ -1185,13 +1234,6 @@ class TrocarEmprestimoView(GenericAPIView):
             data = {
                 "status": "error",
                 "message": "Emprestimo já finalizado.",
-            }
-            return Response(status=status.HTTP_400_BAD_REQUEST, data=data)
-
-        if not novo_solicitante.autorizado_emprestimo:
-            data = {
-                "status": "error",
-                "message": "Usuário não autorizado para empréstimo.",
             }
             return Response(status=status.HTTP_400_BAD_REQUEST, data=data)
 

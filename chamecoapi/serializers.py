@@ -39,7 +39,6 @@ class UsuariosSerializer(serializers.ModelSerializer):
             "nome",
             "setor",
             "tipo",
-            "autorizado_emprestimo",
             "chaves",
             "chaves_autorizadas",
             "token",
@@ -108,11 +107,19 @@ class BlocosSerializer(serializers.ModelSerializer):
 class SalasSerializer(serializers.ModelSerializer):
     class Meta:
         model = Salas
-        fields = "__all__"
+        fields = [
+            "id",
+            "nome",
+            "bloco",
+            "nome_bloco",
+            "token",
+        ]
 
     token = serializers.CharField(write_only=True, required=True)
 
     bloco = serializers.PrimaryKeyRelatedField(queryset=Blocos.objects.all())
+
+    nome_bloco = serializers.CharField(source="bloco.nome", read_only=True)
 
 
 class ChavesSerializer(serializers.ModelSerializer):
@@ -121,6 +128,7 @@ class ChavesSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "sala",
+            "nome_sala",
             "disponivel",
             "usuarios_autorizados",
             "usuarios",
@@ -132,6 +140,8 @@ class ChavesSerializer(serializers.ModelSerializer):
     # Especeficação de que o campo "sala" é um uma chave primária relacionada ao Model Salas
     # O queryset determina que o serializer aceitará apenas IDs de salas que existem
     sala = serializers.PrimaryKeyRelatedField(queryset=Salas.objects.all())
+
+    nome_sala = serializers.CharField(source="sala.nome", read_only=True)
 
     usuarios_autorizados = serializers.PrimaryKeyRelatedField(
         queryset=Usuarios.objects.all(), many=True, write_only=True, required=False

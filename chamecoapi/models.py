@@ -13,8 +13,8 @@ class Usuarios(models.Model):
     setor = models.CharField(max_length=512, null=False)
     tipo = models.CharField(max_length=512, null=False)
     email = models.EmailField(null=True)
-    autorizado_emprestimo = models.BooleanField(default=False)
-    chaves_autorizadas = models.ManyToManyField("Chaves", through="PessoasAutorizadas")
+    chaves_autorizadas = models.ManyToManyField(
+        "Chaves", through="PessoasAutorizadas")
 
     class Meta:
         verbose_name = "Usuario"
