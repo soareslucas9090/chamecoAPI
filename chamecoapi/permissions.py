@@ -6,6 +6,9 @@ from rest_framework import permissions
 from rest_framework.exceptions import PermissionDenied
 
 from .business import getIdUser, isTokenValid, requestFactory
+from .bases import (
+    tipos_usa_sistema_livremente, setores_usa_sistema_livremente, tipos_admin, setores_admin
+)
 
 load_dotenv()
 URL_BASE = os.environ.get("urlBase")
@@ -63,14 +66,12 @@ class IsAdmin(permissions.BasePermission):
         if not response:
             raise PermissionDenied(detail="Usuário não encontrado.")
 
-        tipos_permitidos = ["admin", "ti"]
+        tipos_permitidos = tipos_admin
 
         if response.json()["nome_tipo"] in tipos_permitidos:
             return True
 
-        setores_permitidos = [
-            "TI",
-        ]
+        setores_permitidos = setores_admin
 
         setores_usuario = response.json()["nome_setores"]
 
@@ -145,14 +146,12 @@ class CanUseSystem(permissions.BasePermission):
         if not response:
             raise PermissionDenied(detail="Usuário não encontrado.")
 
-        tipos_permitidos = ["admin", "ti", "coordenador", "vigilante"]
+        tipos_permitidos = tipos_usa_sistema_livremente
 
         if response.json()["nome_tipo"] in tipos_permitidos:
             return True
 
-        setores_permitidos = [
-            "TI", "Guarita", "Coordenacao de Disciplina", 'direcao geral', 'direcao de ensino', "vigilante"
-        ]
+        setores_permitidos = setores_usa_sistema_livremente
 
         setores_usuario = response.json()["nome_setores"]
 

@@ -61,6 +61,11 @@ from .serializers import (
     VerifyTokenSerializer,
 )
 
+from .bases import (
+    tipos_usa_sistema_livremente,
+    setores_usa_sistema_livremente,
+)
+
 load_dotenv()
 URL_BASE = os.environ.get("urlBase")
 
@@ -1114,14 +1119,21 @@ class RealizarEmprestimoView(GenericAPIView):
             }
             return Response(status=status.HTTP_400_BAD_REQUEST, data=data)
 
-        if not PessoasAutorizadas.objects.filter(
-            chave=chave, usuario=usuario_solicitante
-        ).exists():
-            data = {
-                "status": "error",
-                "message": "Usuário não autorizado para usar a chave.",
-            }
-            return Response(status=status.HTTP_400_BAD_REQUEST, data=data)
+        setor_consta = False
+        for setor in usuario_solicitante.setor.split(","):
+            if setor.strip().lower() in setores_usa_sistema_livremente:
+                setor_consta = True
+                break
+
+        if not (usuario_solicitante.tipo.lower() in tipos_usa_sistema_livremente or setor_consta):
+            if not PessoasAutorizadas.objects.filter(
+                chave=chave, usuario=usuario_solicitante
+            ).exists():
+                data = {
+                    "status": "error",
+                    "message": "Usuário não autorizado para usar a chave.",
+                }
+                return Response(status=status.HTTP_400_BAD_REQUEST, data=data)
 
         emprestimo = Emprestimos.objects.create(
             chave=chave,
@@ -1207,7 +1219,8 @@ class TrocarEmprestimoView(GenericAPIView):
             data_serializer = serializer.validated_data
 
             emprestimo = Emprestimos.objects.get(
-                pk=data_serializer["id_emprestimo"])
+                pk=data_serializer["id_emprestimo"]
+            )
 
             novo_solicitante = Usuarios.objects.get(
                 pk=data_serializer["novo_solicitante"]
@@ -1237,14 +1250,21 @@ class TrocarEmprestimoView(GenericAPIView):
             }
             return Response(status=status.HTTP_400_BAD_REQUEST, data=data)
 
-        if not PessoasAutorizadas.objects.filter(
-            usuario=novo_solicitante, chave=emprestimo.chave
-        ).exists():
-            data = {
-                "status": "error",
-                "message": "Usuário não autorizado para usar a chave.",
-            }
-            return Response(status=status.HTTP_400_BAD_REQUEST, data=data)
+        setor_consta = False
+        for setor in usuario_solicitante.setor.split(","):
+            if setor.strip().lower() in setores_usa_sistema_livremente:
+                setor_consta = True
+                break
+
+        if not (usuario_solicitante.tipo.lower() in tipos_usa_sistema_livremente or setor_consta):
+            if not PessoasAutorizadas.objects.filter(
+                usuario=novo_solicitante, chave=emprestimo.chave
+            ).exists():
+                data = {
+                    "status": "error",
+                    "message": "Usuário não autorizado para usar a chave.",
+                }
+                return Response(status=status.HTTP_400_BAD_REQUEST, data=data)
 
         emprestimo.horario_devolucao = horario_troca
         emprestimo.save()
