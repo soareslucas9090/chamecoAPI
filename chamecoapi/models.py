@@ -13,8 +13,10 @@ class Usuarios(models.Model):
     setor = models.CharField(max_length=512, null=False)
     tipo = models.CharField(max_length=512, null=False)
     email = models.EmailField(null=True)
-    chaves_autorizadas = models.ManyToManyField(
-        "Chaves", through="PessoasAutorizadas")
+    salas_autorizadas = models.ManyToManyField(
+        "Salas",
+        through="PessoasAutorizadas"
+    )
 
     class Meta:
         verbose_name = "Usuario"
@@ -44,6 +46,9 @@ class Salas(models.Model):
     bloco = models.ForeignKey(
         Blocos, related_name="salas", on_delete=models.CASCADE, null=False
     )
+    usuarios_autorizados = models.ManyToManyField(
+        Usuarios, through="PessoasAutorizadas"
+    )
 
     class Meta:
         verbose_name = "Sala"
@@ -61,9 +66,6 @@ class Chaves(models.Model):
     )
     disponivel = models.BooleanField(default=True, null=False)
     principal = models.BooleanField(default=False, null=False)
-    usuarios_autorizados = models.ManyToManyField(
-        Usuarios, through="PessoasAutorizadas"
-    )
     descricao = models.CharField(
         max_length=256,
         null=True,
@@ -89,8 +91,8 @@ class PessoasAutorizadas(models.Model):
         on_delete=models.CASCADE,
         null=False,
     )
-    chave = models.ForeignKey(
-        Chaves,
+    sala = models.ForeignKey(
+        Salas,
         on_delete=models.CASCADE,
         null=False,
     )

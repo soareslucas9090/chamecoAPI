@@ -25,7 +25,7 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(required=True)
 
 
-class RetornoDeChavesEUsuariosSerializer(serializers.Serializer):
+class RetornoDeSalasEUsuariosSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     nome = serializers.CharField(max_length=128)
 
@@ -39,8 +39,8 @@ class UsuariosSerializer(serializers.ModelSerializer):
             "nome",
             "setor",
             "tipo",
-            "chaves",
-            "chaves_autorizadas",
+            "salas",
+            "salas_autorizadas",
             "token",
         ]
 
@@ -70,27 +70,27 @@ class UsuariosSerializer(serializers.ModelSerializer):
 
     token = serializers.CharField(write_only=True, required=True)
 
-    chaves_autorizadas = serializers.PrimaryKeyRelatedField(
-        queryset=Chaves.objects.all(), many=True, write_only=True, required=False
+    salas_autorizadas = serializers.PrimaryKeyRelatedField(
+        queryset=Salas.objects.all(), many=True, write_only=True, required=False
     )
 
     # Este é o campo destinado a leitura
-    chaves = serializers.SerializerMethodField(read_only=True)
+    salas = serializers.SerializerMethodField(read_only=True)
 
     @extend_schema_field(
         field=serializers.ListField(
-            child=RetornoDeChavesEUsuariosSerializer(),
+            child=RetornoDeSalasEUsuariosSerializer(),
         )
     )
-    def get_chaves(self, obj):
+    def get_salas(self, obj):
         data = []
 
         queryset = PessoasAutorizadas.objects.filter(usuario=obj)
 
         for autorizacao in queryset:
             aux = {}
-            aux["id"] = autorizacao.chave.id
-            aux["nome"] = str(autorizacao.chave)
+            aux["id"] = autorizacao.sala.id
+            aux["nome"] = str(autorizacao.sala)
             data.append(aux)
 
         return data
@@ -112,6 +112,8 @@ class SalasSerializer(serializers.ModelSerializer):
             "nome",
             "bloco",
             "nome_bloco",
+            "usuarios_autorizados",
+            "usuarios",
             "token",
         ]
 
@@ -120,28 +122,6 @@ class SalasSerializer(serializers.ModelSerializer):
     bloco = serializers.PrimaryKeyRelatedField(queryset=Blocos.objects.all())
 
     nome_bloco = serializers.CharField(source="bloco.nome", read_only=True)
-
-
-class ChavesSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Chaves
-        fields = [
-            "id",
-            "sala",
-            "nome_sala",
-            "disponivel",
-            "usuarios_autorizados",
-            "usuarios",
-            "descricao",
-            "token",
-        ]
-
-    token = serializers.CharField(write_only=True, required=True)
-    # Especeficação de que o campo "sala" é um uma chave primária relacionada ao Model Salas
-    # O queryset determina que o serializer aceitará apenas IDs de salas que existem
-    sala = serializers.PrimaryKeyRelatedField(queryset=Salas.objects.all())
-
-    nome_sala = serializers.CharField(source="sala.nome", read_only=True)
 
     usuarios_autorizados = serializers.PrimaryKeyRelatedField(
         queryset=Usuarios.objects.all(), many=True, write_only=True, required=False
@@ -152,7 +132,7 @@ class ChavesSerializer(serializers.ModelSerializer):
     # Método responsável por fornecer os dados para o campo "usuários"
     @extend_schema_field(
         field=serializers.ListField(
-            child=RetornoDeChavesEUsuariosSerializer(),
+            child=RetornoDeSalasEUsuariosSerializer(),
         )
     )
     def get_usuarios(self, obj):
@@ -167,6 +147,26 @@ class ChavesSerializer(serializers.ModelSerializer):
             data.append(aux)
 
         return data
+
+
+class ChavesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Chaves
+        fields = [
+            "id",
+            "sala",
+            "nome_sala",
+            "disponivel",
+            "descricao",
+            "token",
+        ]
+
+    token = serializers.CharField(write_only=True, required=True)
+    # Especeficação de que o campo "sala" é um uma chave primária relacionada ao Model Salas
+    # O queryset determina que o serializer aceitará apenas IDs de salas que existem
+    sala = serializers.PrimaryKeyRelatedField(queryset=Salas.objects.all())
+
+    nome_sala = serializers.CharField(source="sala.nome", read_only=True)
 
 
 class AutorizadosSerializer(serializers.Serializer):

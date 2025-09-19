@@ -243,11 +243,11 @@ class UsuariosViewSet(ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
 
-        chave_autorizada = self.request.query_params.get("chave_autorizada")
+        sala_autorizada = self.request.query_params.get("sala_autorizada")
 
-        if chave_autorizada and chave_autorizada.isnumeric():
+        if sala_autorizada and sala_autorizada.isnumeric():
             queryset = queryset.filter(
-                chaves_autorizadas__id=int(chave_autorizada)
+                salas_autorizadas__id=int(sala_autorizada)
             ).distinct()
 
         nome = self.request.query_params.get("nome")
@@ -436,9 +436,9 @@ class UsuariosViewSet(ModelViewSet):
             usuario.id_cortex = response.json()["id"]
             usuario.setor = setores
             usuario.tipo = response.json()["nome_tipo"]
-            if serializer.get("chaves_autorizadas", None):
-                usuario.chaves_autorizadas.set(
-                    serializer["chaves_autorizadas"])
+            if serializer.get("salas_autorizadas", None):
+                usuario.salas_autorizadas.set(
+                    serializer["salas_autorizadas"])
 
             usuario.save()
 
@@ -1127,11 +1127,11 @@ class RealizarEmprestimoView(GenericAPIView):
 
         if not (usuario_solicitante.tipo.lower() in tipos_usa_sistema_livremente or setor_consta):
             if not PessoasAutorizadas.objects.filter(
-                chave=chave, usuario=usuario_solicitante
+                sala=chave.sala, usuario=usuario_solicitante
             ).exists():
                 data = {
                     "status": "error",
-                    "message": "Usuário não autorizado para usar a chave.",
+                    "message": "Usuário não autorizado para usar a sala.",
                 }
                 return Response(status=status.HTTP_400_BAD_REQUEST, data=data)
 
@@ -1258,11 +1258,11 @@ class TrocarEmprestimoView(GenericAPIView):
 
         if not (usuario_solicitante.tipo.lower() in tipos_usa_sistema_livremente or setor_consta):
             if not PessoasAutorizadas.objects.filter(
-                usuario=novo_solicitante, chave=emprestimo.chave
+                usuario=novo_solicitante, sala=emprestimo.chave.sala
             ).exists():
                 data = {
                     "status": "error",
-                    "message": "Usuário não autorizado para usar a chave.",
+                    "message": "Usuário não autorizado para usar a sala.",
                 }
                 return Response(status=status.HTTP_400_BAD_REQUEST, data=data)
 
