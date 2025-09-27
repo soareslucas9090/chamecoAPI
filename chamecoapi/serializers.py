@@ -138,7 +138,7 @@ class SalasSerializer(serializers.ModelSerializer):
     def get_usuarios(self, obj):
         data = []
 
-        queryset = PessoasAutorizadas.objects.filter(chave=obj)
+        queryset = PessoasAutorizadas.objects.filter(sala=obj)
 
         for autorizacao in queryset:
             aux = {}
