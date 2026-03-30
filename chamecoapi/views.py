@@ -198,7 +198,10 @@ class LoginAPIView(GenericAPIView):
                 status_code = status.HTTP_403_FORBIDDEN
 
         else:
-            data = response.json()
+            try:
+                data = response.json()
+            except Exception:
+                data = {"status": "error", "message": "Resposta inválida do servidor de autenticação."}
 
         return Response(data, status=status_code)
 
