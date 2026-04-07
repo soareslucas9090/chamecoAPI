@@ -22,22 +22,22 @@ ALLOWED_HOSTS = [os.environ.get("allowedHosts")]
 
 # Configura o banco de dados
 # Configurações do banco em produção
-# DATABASES = {
-#     "default": {
-#         "ENGINE": os.environ.get("bdEngine"),
-#         "NAME": os.environ.get("bdName"),
-#         "USER": os.environ.get("bdUser"),
-#         "PASSWORD": os.environ.get("bdPass"),
-#         "HOST": os.environ.get("bdHost"),
-#         "PORT": os.environ.get("bdPort"),
-#     }
-# }
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": os.environ.get("bdEngine"),
+        "NAME": os.environ.get("bdName"),
+        "USER": os.environ.get("bdUser"),
+        "PASSWORD": os.environ.get("bdPass"),
+        "HOST": os.environ.get("bdHost"),
+        "PORT": os.environ.get("bdPort"),
     }
 }
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.sqlite3",
+#         "NAME": BASE_DIR / "db.sqlite3",
+#     }
+# }
 
 # Armazena os endereços confiáveis para CSRF
 CSRF_TRUSTED_ORIGINS = os.environ.get(
