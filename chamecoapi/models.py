@@ -114,14 +114,14 @@ class Emprestimos(models.Model):
     usuario_responsavel = models.ForeignKey(
         "UsuariosResponsaveis",
         related_name="emprestimos_responsaveis",
-        on_delete=models.DO_NOTHING,
-        null=False,
+        on_delete=models.SET_NULL,
+        null=True,
     )
     usuario_solicitante = models.ForeignKey(
         Usuarios,
         related_name="emprestimos_solicitados",
-        on_delete=models.DO_NOTHING,
-        null=False,
+        on_delete=models.SET_NULL,
+        null=True,
     )
     observacao = models.CharField(
         max_length=256,
