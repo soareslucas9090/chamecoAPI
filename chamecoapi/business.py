@@ -76,14 +76,14 @@ def setTokens(hash_token: str, access: str, refresh: str):
         hash_token=f"{hash_token}_access",
         defaults={
             "valor": access,
-            "data_expiracao": timezone.now() + timedelta(minutes=10),
+            "data_expiracao": timezone.now() + timedelta(days=1),
         },
     )
     Tokens.objects.update_or_create(
         hash_token=f"{hash_token}_refresh",
         defaults={
             "valor": refresh,
-            "data_expiracao": timezone.now() + timedelta(minutes=35),
+            "data_expiracao": timezone.now() + timedelta(days=7),
         },
     )
 
@@ -93,7 +93,7 @@ def setIdUser(hash_token: str, id_user: int):
         hash_token=f"{hash_token}_id_user",
         defaults={
             "valor": str(id_user),
-            "data_expiracao": timezone.now() + timedelta(minutes=35),
+            "data_expiracao": timezone.now() + timedelta(days=1),
         },
     )
 
