@@ -79,6 +79,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "drf_spectacular_sidecar",
     "chamecoapi",
+    "django_extensions",
 ]
 
 MIDDLEWARE = [
@@ -145,7 +146,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "pt-BR"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "America/Fortaleza"
 
 USE_I18N = True
 
@@ -157,7 +158,10 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
-STATIC_ROOT = "/home/chamecoapi/cortex/static"
+BASE_DIR = Path(__file__).resolve().parent.parent
+base = BASE_DIR / "staticfiles"
+
+STATIC_ROOT = base
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
