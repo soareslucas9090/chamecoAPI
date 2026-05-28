@@ -21,7 +21,6 @@ DEBUG = os.environ.get("debugMode")
 ALLOWED_HOSTS = [os.environ.get("allowedHosts")]
 
 # Configura o banco de dados
-# Configurações do banco em produção
 DATABASES = {
     "default": {
         "ENGINE": os.environ.get("bdEngine"),
@@ -32,12 +31,17 @@ DATABASES = {
         "PORT": os.environ.get("bdPort"),
     }
 }
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": BASE_DIR / "db.sqlite3",
-#     }
-# }
+
+# Configura o banco de dados para testes, caso o comando de teste seja detectado
+if "test" in sys.argv or "test_coverage" in sys.argv:
+    DATABASES["default"] = {
+        "ENGINE": os.environ.get("bdEngineTest"),
+        "NAME": os.environ.get("bdNameTest"),
+        "USER": os.environ.get("bdUserTest"),
+        "PASSWORD": os.environ.get("bdPassTest"),
+        "HOST": os.environ.get("bdHostTest"),
+        "PORT": os.environ.get("bdPortTest"),
+    }
 
 # Armazena os endereços confiáveis para CSRF
 CSRF_TRUSTED_ORIGINS = os.environ.get(
@@ -59,17 +63,11 @@ CORS_ALLOW_ALL_ORIGINS: True
 CORS_ALLOW_METHODS = ["*"]
 
 
-if "test" in sys.argv or "test_coverage" in sys.argv:
-    DATABASES["default"] = {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": ":memory:",
-    }
-
-
 # Application definition
 
 INSTALLED_APPS = [
     "django.contrib.admin",
+    "django.contrib.postgres",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",

@@ -258,13 +258,13 @@ class UsuariosViewSet(ModelViewSet):
         setor = self.request.query_params.get("setor")
 
         if nome:
-            queryset = queryset.filter(nome__icontains=nome)
+            queryset = queryset.filter(nome__unaccent__icontains=nome)
 
         if tipo:
-            queryset = queryset.filter(tipo__icontains=tipo)
+            queryset = queryset.filter(tipo__unaccent__icontains=tipo)
 
         if setor:
-            queryset = queryset.filter(setor__icontains=setor)
+            queryset = queryset.filter(setor__unaccent__icontains=setor)
 
         return queryset
 
@@ -509,7 +509,7 @@ class BlocosViewSet(ModelViewSet):
         nome = self.request.query_params.get("nome", None)
 
         if nome:
-            queryset = queryset.filter(nome__icontains__iexact=nome)
+            queryset = queryset.filter(nome__unaccent__icontains=nome)
 
         return queryset
 
@@ -607,12 +607,12 @@ class SalasViewSet(ModelViewSet):
         nome = self.request.query_params.get("nome", None)
 
         if nome:
-            queryset = queryset.filter(nome__icontains=nome)
+            queryset = queryset.filter(nome__unaccent__icontains=nome)
 
         bloco = self.request.query_params.get("bloco", None)
 
         if bloco:
-            queryset = queryset.filter(bloco__nome__icontains=bloco)
+            queryset = queryset.filter(bloco__nome__unaccent__icontains=bloco)
 
         return queryset
 
@@ -717,12 +717,12 @@ class ChavesViewSet(ModelViewSet):
         sala = self.request.query_params.get("sala", None)
 
         if sala:
-            queryset = queryset.filter(sala__nome__icontains=sala)
+            queryset = queryset.filter(sala__nome__unaccent__icontains=sala)
 
         bloco = self.request.query_params.get("bloco", None)
 
         if bloco:
-            queryset = queryset.filter(bloco__nome__icontains=bloco)
+            queryset = queryset.filter(sala__bloco__nome__unaccent__icontains=bloco)
 
         disponivel = self.request.query_params.get("disponivel")
 
@@ -847,7 +847,7 @@ class UsuariosResponsaveisViewSet(ModelViewSet):
 
         if nome_superusuario:
             queryset = queryset.filter(
-                superusuario__nome__icontains=nome_superusuario)
+                superusuario__nome__unaccent__icontains=nome_superusuario)
 
         superusuario = self.request.query_params.get("superusuario", None)
 
@@ -857,7 +857,7 @@ class UsuariosResponsaveisViewSet(ModelViewSet):
         nome = self.request.query_params.get("nome", None)
 
         if nome:
-            queryset = queryset.filter(nome__icontains=nome)
+            queryset = queryset.filter(nome__unaccent__icontains=nome)
 
         return queryset
 
@@ -976,13 +976,13 @@ class EmprestimoDetalhadoViewSet(
 
         if solicitante:
             queryset = queryset.filter(
-                usuario_solicitante__nome__icontains=solicitante)
+                usuario_solicitante__nome__unaccent__icontains=solicitante)
 
         responsavel = self.request.query_params.get("responsavel", None)
 
         if responsavel:
             queryset = queryset.filter(
-                usuario_responsavel__nome__icontains=responsavel)
+                usuario_responsavel__nome__unaccent__icontains=responsavel)
 
         finalizados = self.request.query_params.get("finalizados", None)
 
