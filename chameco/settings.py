@@ -70,6 +70,7 @@ if "test" in sys.argv or "test_coverage" in sys.argv:
 
 INSTALLED_APPS = [
     "django.contrib.admin",
+    "django.contrib.postgres",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
