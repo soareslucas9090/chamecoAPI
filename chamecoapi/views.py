@@ -509,7 +509,7 @@ class BlocosViewSet(ModelViewSet):
         nome = self.request.query_params.get("nome", None)
 
         if nome:
-            queryset = queryset.filter(nome__unaccent__icontains__iexact=nome)
+            queryset = queryset.filter(nome__unaccent__icontains=nome)
 
         return queryset
 
@@ -722,7 +722,7 @@ class ChavesViewSet(ModelViewSet):
         bloco = self.request.query_params.get("bloco", None)
 
         if bloco:
-            queryset = queryset.filter(bloco__nome__unaccent__icontains=bloco)
+            queryset = queryset.filter(sala__bloco__nome__unaccent__icontains=bloco)
 
         disponivel = self.request.query_params.get("disponivel")
 
