@@ -157,10 +157,8 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-base = BASE_DIR / "staticfiles"
+STATIC_ROOT = "/home/chamecoapi/cortex/static"
 
-STATIC_ROOT = base
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
