@@ -131,10 +131,10 @@ def verifyToken(hash_token: str) -> bool:
 
 
 def refreshToken(hash_token: str) -> bool:
-    refresh = getTokens(hash_token)
+    tokens = getTokens(hash_token)
 
-    if refresh:
-        data = {"refresh": refresh["refresh"]}
+    if tokens:
+        data = {"refresh": tokens["refresh"]}
     else:
         return False
 
@@ -148,7 +148,7 @@ def refreshToken(hash_token: str) -> bool:
 
     data = response.json()
 
-    setTokens(hash_token, data["access"], refresh)
+    setTokens(hash_token, data["access"], data.get("refresh", tokens["refresh"]))
 
     return True
 

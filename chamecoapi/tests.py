@@ -1,18 +1,48 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
+from .business import getTokens, refreshToken
 from .models import (
 	Blocos,
 	Chaves,
 	Emprestimos,
 	PessoasAutorizadas,
+	Tokens,
 	Salas,
 	Usuarios,
 	UsuariosResponsaveis,
 )
+
+
+class TokenRefreshTests(APITestCase):
+	def test_refresh_token_atualiza_access_e_preserva_refresh(self):
+		hash_token = "hash-teste"
+
+		Tokens.objects.create(
+			hash_token=f"{hash_token}_access",
+			valor="access-antigo",
+			data_expiracao=timezone.now() - timedelta(minutes=1),
+		)
+		Tokens.objects.create(
+			hash_token=f"{hash_token}_refresh",
+			valor="refresh-antigo",
+			data_expiracao=timezone.now() + timedelta(days=7),
+		)
+
+		mock_response = Mock()
+		mock_response.status_code = 200
+		mock_response.json.return_value = {"access": "access-novo"}
+
+		with patch("chamecoapi.business.requests.post", return_value=mock_response):
+			self.assertTrue(refreshToken(hash_token))
+
+		tokens = getTokens(hash_token)
+		self.assertIsNotNone(tokens)
+		self.assertEqual(tokens["access"], "access-novo")
+		self.assertEqual(tokens["refresh"], "refresh-antigo")
 
 
 class ViewSetGetAndRetrieveTests(APITestCase):
